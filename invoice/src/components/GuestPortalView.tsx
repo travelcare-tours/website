@@ -14,15 +14,13 @@ import {
   Printer, 
   CreditCard, 
   Navigation, 
-  ShieldCheck, 
   ArrowLeft,
   Calendar,
   Sparkles,
   ExternalLink,
   Car,
   FileCheck,
-  Check,
-  MessageCircle
+  Check
 } from 'lucide-react';
 
 interface GuestPortalViewProps {
@@ -34,7 +32,6 @@ interface GuestPortalViewProps {
 export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
   trip,
   companySettings,
-  onExitGuestMode,
 }) => {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -43,9 +40,6 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
   const currency = companySettings.currencySymbol || '₹';
   const isPaid = trip.balanceAmount <= 0;
   const upiUrl = generateUpiPaymentUrl(companySettings, trip);
-  const qrCodeImgUrl = upiUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}&margin=10`
-    : '';
 
   const handleDownloadPdf = async () => {
     if (!receiptRef.current) return;
@@ -94,78 +88,9 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
     window.print();
   };
 
-  const handleShareWhatsApp = () => {
-    const message = generateWhatsAppMessage(trip, companySettings, true);
-    const cleanPhone = trip.customerPhone ? trip.customerPhone.replace(/[^0-9]/g, '') : '';
-    let targetPhone = cleanPhone;
-    if (targetPhone.length === 10) {
-      targetPhone = `91${targetPhone}`;
-    }
-
-    const encodedText = encodeURIComponent(message);
-    const whatsappUrl = targetPhone 
-      ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodedText}`
-      : `https://api.whatsapp.com/send?text=${encodedText}`;
-
-    window.open(whatsappUrl, '_blank');
-  };
-
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 py-6 px-3 sm:px-6 flex flex-col justify-between">
       <div className="max-w-2xl mx-auto w-full space-y-4">
-        
-        {/* Top Floating Guest Bar */}
-        <div className="no-print flex items-center justify-between bg-slate-800/90 border border-slate-700/80 rounded-xl px-4 py-3 shadow-lg backdrop-blur-md">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-white block">Official Trip Invoice</span>
-              <span className="text-[11px] text-slate-400">Issued by {companySettings.companyName}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleShareWhatsApp}
-              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
-              title="Share invoice on WhatsApp"
-            >
-              <MessageCircle className="w-3.5 h-3.5 mr-1" />
-              <span>WhatsApp</span>
-            </button>
-
-            <button
-              onClick={handleDownloadPdf}
-              disabled={isExportingPdf}
-              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
-              title="Download PDF bill"
-            >
-              {downloadSuccess ? (
-                <>
-                  <Check className="w-3.5 h-3.5 mr-1" />
-                  <span>Saved</span>
-                </>
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5 mr-1" />
-                  <span>{isExportingPdf ? 'Exporting...' : 'PDF Bill'}</span>
-                </>
-              )}
-            </button>
-
-            {onExitGuestMode && (
-              <button
-                onClick={onExitGuestMode}
-                className="text-[11px] text-slate-400 hover:text-white px-2 py-1 transition-colors cursor-pointer ml-1"
-                title="Go to staff / admin portal"
-              >
-                Admin
-              </button>
-            )}
-          </div>
-        </div>
 
         {/* Printable White Receipt Document */}
         <div 
@@ -395,8 +320,8 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
           </div>
 
           {/* Instant UPI Payment Box */}
-          {!isPaid && companySettings.upiId && (
-            <div className="bg-linear-to-r from-blue-900 to-indigo-900 text-white rounded-2xl p-5 shadow-lg space-y-4">
+          {!isPaid && upiUrl && (
+            <div className="bg-linear-to-r from-blue-900 to-indigo-900 text-white rounded-2xl p-4 sm:p-5 shadow-lg space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <CreditCard className="w-5 h-5 text-blue-300" />
@@ -407,31 +332,39 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
                 </span>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/10 p-3.5 rounded-xl backdrop-blur-xs">
-                {qrCodeImgUrl && (
-                  <img 
-                    src={qrCodeImgUrl} 
-                    alt="UPI QR Code" 
-                    className="w-28 h-28 bg-white p-1.5 rounded-xl shrink-0 shadow-md" 
-                  />
-                )}
-                <div className="text-center sm:text-left text-xs space-y-1.5 flex-1">
-                  <p className="font-bold text-white text-sm">Scan to Pay via Any UPI App</p>
-                  <p className="text-blue-200">Supports Google Pay, PhonePe, Paytm, and BHIM</p>
-                  <p className="font-mono text-xs text-blue-300 font-semibold">UPI ID: {companySettings.upiId}</p>
-                  
-                  {/* Direct UPI Mobile Link */}
-                  <a
-                    href={upiUrl}
-                    className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 mt-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md transition-colors"
-                  >
-                    <CreditCard className="w-4 h-4 mr-1.5" />
-                    Pay with UPI App
-                  </a>
-                </div>
-              </div>
+              {/* Single Direct Button / Badge to redirect into UPI App */}
+              <a
+                href={upiUrl}
+                id="btn-guest-upi-pay"
+                className="flex items-center justify-center w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-[0.99] text-white font-bold text-sm shadow-md transition-all gap-2 cursor-pointer"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>Pay with UPI App</span>
+              </a>
             </div>
           )}
+
+          {/* Action Row: Download PDF Copy */}
+          <div className="no-print pt-1 flex justify-center">
+            <button
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="inline-flex items-center px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer gap-2 border border-slate-200"
+              title="Download PDF Bill"
+            >
+              {downloadSuccess ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span className="text-emerald-700 font-bold">PDF Downloaded</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 text-slate-500" />
+                  <span>{isExportingPdf ? 'Exporting PDF...' : 'Download PDF Bill'}</span>
+                </>
+              )}
+            </button>
+          </div>
 
           {/* Footer Terms */}
           <div className="border-t border-slate-200 pt-3 text-[10px] text-slate-400 text-center">

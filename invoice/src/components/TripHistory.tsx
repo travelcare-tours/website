@@ -3,7 +3,6 @@ import { TripRecord, CompanySettings } from '../types';
 import { formatCurrency, formatNumber, convertTripsToCsv, generateWhatsAppMessage } from '../utils/calculations';
 import { PaymentSettlementModal } from './PaymentSettlementModal';
 import { DataBackupModal } from './DataBackupModal';
-import { GuestReceiptModal } from './GuestReceiptModal';
 import { ShareInvoiceModal } from './ShareInvoiceModal';
 import { 
   Search, 
@@ -75,7 +74,6 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
   // Modal states
   const [settlementTrip, setSettlementTrip] = useState<TripRecord | null>(null);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
-  const [guestReceiptTrip, setGuestReceiptTrip] = useState<TripRecord | null>(null);
   const [shareTripModal, setShareTripModal] = useState<TripRecord | null>(null);
   const [actionMenuTripId, setActionMenuTripId] = useState<string | null>(null);
   const actionMenuRef = useRef<HTMLDivElement | null>(null);
@@ -444,16 +442,6 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
                               <button
                                 onClick={() => {
                                   setActionMenuTripId(null);
-                                  setGuestReceiptTrip(trip);
-                                }}
-                                className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                              >
-                                <Smartphone className="w-3.5 h-3.5 text-blue-600" />
-                                <span>Guest View (Mobile)</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setActionMenuTripId(null);
                                   setShareTripModal(trip);
                                 }}
                                 className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
@@ -684,16 +672,6 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
                                   <button
                                     onClick={() => {
                                       setActionMenuTripId(null);
-                                      setGuestReceiptTrip(trip);
-                                    }}
-                                    className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                                  >
-                                    <Smartphone className="w-3.5 h-3.5 text-blue-600" />
-                                    <span>Guest Mobile View</span>
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setActionMenuTripId(null);
                                       setShareTripModal(trip);
                                     }}
                                     className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
@@ -820,31 +798,6 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
           onPrint={() => {
             onSelectTrip(shareTripModal);
             setShareTripModal(null);
-          }}
-          onOpenGuestPortal={() => {
-            setGuestReceiptTrip(shareTripModal);
-            setShareTripModal(null);
-          }}
-        />
-      )}
-
-      {/* Guest Digital Receipt Modal */}
-      {guestReceiptTrip && (
-        <GuestReceiptModal
-          trip={guestReceiptTrip}
-          companySettings={companySettings}
-          onClose={() => setGuestReceiptTrip(null)}
-          onDownloadPdf={() => {
-            onSelectTrip(guestReceiptTrip);
-            setGuestReceiptTrip(null);
-          }}
-          onDirectSharePdf={() => {
-            onSelectTrip(guestReceiptTrip);
-            setGuestReceiptTrip(null);
-          }}
-          onPrint={() => {
-            onSelectTrip(guestReceiptTrip);
-            setGuestReceiptTrip(null);
           }}
         />
       )}

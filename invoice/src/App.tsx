@@ -58,6 +58,14 @@ export default function App() {
         if (parsed.email === 'hashimhassan2@gmail.com') {
           parsed.email = 'travelcare598@gmail.com';
         }
+        // Update to accurate address from website footer if old or default
+        if (!parsed.address || parsed.address.includes('Nedumbassery') || parsed.address.includes('Airport Road')) {
+          parsed.address = 'Ground Flr, Mannath Bld, 36/267. Seaport-Airport Rd, Thrikkakara Ernakulam, Kerala';
+        }
+        // Update phone to 91435 43444 if old or default
+        if (!parsed.phone || parsed.phone.includes('98470')) {
+          parsed.phone = '+91 91435 43444';
+        }
         return parsed;
       }
     } catch (e) {

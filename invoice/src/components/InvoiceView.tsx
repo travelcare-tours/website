@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { TripRecord, CompanySettings } from '../types';
 import { formatCurrency, formatNumber, generateWhatsAppMessage, generateUpiPaymentUrl } from '../utils/calculations';
 import { TravelCareLogo } from './TravelCareLogo';
-import { GuestReceiptModal } from './GuestReceiptModal';
 import { ShareInvoiceModal } from './ShareInvoiceModal';
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
@@ -56,7 +55,6 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
   const [isSharingPdf, setIsSharingPdf] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [showGuestModal, setShowGuestModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [showShareHelpModal, setShowShareHelpModal] = useState(false);
   const [shareSuccessNotice, setShareSuccessNotice] = useState<string | null>(null);
@@ -278,17 +276,6 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
           >
             <Download className="w-3.5 h-3.5 text-blue-400" />
             <span>{isExportingPdf ? 'Exporting...' : 'Download PDF'}</span>
-          </button>
-
-          {/* GUEST VIEW (Indigo / Digital Preview) */}
-          <button
-            id="btn-guest-view"
-            onClick={() => setShowGuestModal(true)}
-            className="inline-flex items-center px-3 py-2 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer gap-1.5"
-            title="Open clean digital guest invoice view"
-          >
-            <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Guest View</span>
           </button>
 
           {/* EDIT TRIP (Amber / Modification) */}
@@ -577,19 +564,21 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
                 </div>
               )}
 
-              {/* UPI QR Payment for Pending Balance */}
-              {!isPaid && qrCodeImgUrl && (
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center space-x-3">
-                  <img 
-                    src={qrCodeImgUrl} 
-                    alt="UPI QR Code" 
-                    className="w-16 h-16 bg-white p-1 rounded border border-slate-200 shadow-xs shrink-0" 
-                  />
+              {/* Instant UPI Payment Link */}
+              {!isPaid && upiUrl && (
+                <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-100 flex items-center justify-between gap-3">
                   <div className="text-xs text-slate-800">
-                    <span className="font-bold text-slate-900 block text-xs uppercase tracking-wider">Scan & Pay Balance ({formatCurrency(trip.balanceAmount, currency)})</span>
-                    <p className="text-slate-600 text-[11px] mt-0.5">Google Pay / PhonePe / Paytm / BHIM</p>
-                    <p className="font-mono text-[11px] text-blue-700 mt-0.5 font-semibold">UPI ID: {companySettings.upiId}</p>
+                    <span className="font-bold text-slate-900 block text-xs">Pending Balance ({formatCurrency(trip.balanceAmount, currency)})</span>
+                    <p className="text-slate-500 text-[11px]">Instant redirection to UPI App</p>
                   </div>
+                  <a
+                    href={upiUrl}
+                    id="btn-invoice-pay-upi"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer shrink-0"
+                  >
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Pay with UPI</span>
+                  </a>
                 </div>
               )}
 
@@ -659,28 +648,12 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
 
       </div>
 
-      {/* Comprehensive Share Invoice with Guest Modal */}
+      {/* Comprehensive Share Invoice Modal */}
       {showShareModal && (
         <ShareInvoiceModal
           trip={trip}
           companySettings={companySettings}
           onClose={() => setShowShareModal(false)}
-          onDownloadPdf={handleDownloadPdf}
-          onDirectSharePdf={handleDirectSharePdf}
-          onPrint={handlePrint}
-          onOpenGuestPortal={() => {
-            setShowShareModal(false);
-            setShowGuestModal(true);
-          }}
-        />
-      )}
-
-      {/* Guest Digital Receipt Modal */}
-      {showGuestModal && (
-        <GuestReceiptModal
-          trip={trip}
-          companySettings={companySettings}
-          onClose={() => setShowGuestModal(false)}
           onDownloadPdf={handleDownloadPdf}
           onDirectSharePdf={handleDirectSharePdf}
           onPrint={handlePrint}

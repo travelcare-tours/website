@@ -3,9 +3,9 @@ import { TripRecord, CompanySettings } from '../types';
 export const defaultCompanySettings: CompanySettings = {
   companyName: 'Travel Care Tours Pvt Ltd',
   tagline: 'Kerala & South India Premier Cabs & Holiday Trips',
-  phone: '+91 98470 12345',
+  phone: '+91 91435 43444',
   email: 'travelcare598@gmail.com',
-  address: 'Airport Road, Nedumbassery, Kochi, Kerala - 683111',
+  address: 'Ground Flr, Mannath Bld, 36/267. Seaport-Airport Rd, Thrikkakara Ernakulam, Kerala',
   gstNo: '32AAAAA0000A1Z5',
   upiId: 'hashimhassan2@okhdfcbank',
   upiName: 'Travel Care Tours Pvt Ltd',

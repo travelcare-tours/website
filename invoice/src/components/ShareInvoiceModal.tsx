@@ -31,7 +31,7 @@ interface ShareInvoiceModalProps {
   onDownloadPdf: () => void;
   onDirectSharePdf: () => void;
   onPrint?: () => void;
-  onOpenGuestPortal: () => void;
+  onOpenGuestPortal?: () => void;
 }
 
 export const ShareInvoiceModal: React.FC<ShareInvoiceModalProps> = ({
@@ -40,7 +40,6 @@ export const ShareInvoiceModal: React.FC<ShareInvoiceModalProps> = ({
   onClose,
   onDownloadPdf,
   onDirectSharePdf,
-  onOpenGuestPortal,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
@@ -199,38 +198,20 @@ export const ShareInvoiceModal: React.FC<ShareInvoiceModalProps> = ({
             </button>
           </div>
 
-          {/* SECONDARY ACTION: Download & Preview Flow */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {/* Download Official PDF */}
-            <button
-              id="btn-modal-download-pdf"
-              onClick={onDownloadPdf}
-              className="p-3.5 rounded-xl border border-slate-200 bg-white hover:bg-blue-50/50 hover:border-blue-200 text-left transition-all flex items-center space-x-3 cursor-pointer group shadow-2xs"
-            >
-              <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-                <Download className="w-4 h-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="font-bold text-xs text-slate-900 block truncate">Download PDF</span>
-                <span className="text-[11px] text-slate-500 block truncate">Official stamp receipt</span>
-              </div>
-            </button>
-
-            {/* View Digital Guest View */}
-            <button
-              id="btn-modal-preview-guest"
-              onClick={onOpenGuestPortal}
-              className="p-3.5 rounded-xl border border-slate-200 bg-white hover:bg-indigo-50/50 hover:border-indigo-200 text-left transition-all flex items-center space-x-3 cursor-pointer group shadow-2xs"
-            >
-              <div className="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-                <Smartphone className="w-4 h-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="font-bold text-xs text-slate-900 block truncate">Digital Guest View</span>
-                <span className="text-[11px] text-slate-500 block truncate">Mobile receipt with UPI</span>
-              </div>
-            </button>
-          </div>
+          {/* Download Official PDF */}
+          <button
+            id="btn-modal-download-pdf"
+            onClick={onDownloadPdf}
+            className="w-full p-3.5 rounded-xl border border-slate-200 bg-white hover:bg-blue-50/50 hover:border-blue-200 text-left transition-all flex items-center space-x-3 cursor-pointer group shadow-2xs"
+          >
+            <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+              <Download className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="font-bold text-xs text-slate-900 block truncate">Download PDF Invoice</span>
+              <span className="text-[11px] text-slate-500 block truncate">Save official stamped PDF copy directly to device</span>
+            </div>
+          </button>
 
           {/* Digital Guest Web Link Copy Box */}
           <div className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-2xs space-y-2">
@@ -239,14 +220,6 @@ export const ShareInvoiceModal: React.FC<ShareInvoiceModalProps> = ({
                 <Link2 className="w-3.5 h-3.5 text-blue-600" />
                 <span>Online Digital Invoice Link</span>
               </span>
-              <button
-                id="btn-preview-link-portal"
-                onClick={onOpenGuestPortal}
-                className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
-              >
-                <span>Open Link</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
             </div>
 
             <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
