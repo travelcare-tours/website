@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { PackagesSection } from './components/PackagesSection';
@@ -11,9 +11,16 @@ import { Footer } from './components/Footer';
 import { ItineraryModal } from './components/ItineraryModal';
 import { FloatingWhatsApp } from './components/FloatingWhatsApp';
 import { MobileActionDock } from './components/MobileActionDock';
+import { NotFound } from './components/NotFound';
 import { TourPackage } from './types';
 
 export default function App() {
+  const [currentPath, setCurrentPath] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.pathname || '/';
+    }
+    return '/';
+  });
   const [selectedPackage, setSelectedPackage] = useState<string>('Not decided yet');
   const [selectedDestinations, setSelectedDestinations] = useState<string[]>([
     'Munnar',
@@ -22,10 +29,36 @@ export default function App() {
   ]);
   const [activeModalPackage, setActiveModalPackage] = useState<TourPackage | null>(null);
 
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentPath(window.location.pathname || '/');
+    };
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, []);
+
   const scrollToSection = (sectionId: string) => {
     const el = document.getElementById(sectionId);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const navigateTo = (path: string) => {
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateHome = (sectionId?: string) => {
+    window.history.pushState({}, '', sectionId ? `/#${sectionId}` : '/');
+    setCurrentPath('/');
+    if (sectionId) {
+      setTimeout(() => {
+        scrollToSection(sectionId);
+      }, 100);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -43,18 +76,44 @@ export default function App() {
     if (!selectedDestinations.includes(destName)) {
       setSelectedDestinations((prev) => [...prev, destName]);
     }
-    scrollToSection('trip-planner');
+    if (currentPath !== '/' && currentPath !== '' && currentPath !== '/index.html') {
+      handleNavigateHome('trip-planner');
+    } else {
+      scrollToSection('trip-planner');
+    }
   };
 
   const handleSelectPackageForEnquiry = (pkgTitle: string) => {
     setSelectedPackage(pkgTitle);
-    scrollToSection('trip-planner');
+    if (currentPath !== '/' && currentPath !== '' && currentPath !== '/index.html') {
+      handleNavigateHome('trip-planner');
+    } else {
+      scrollToSection('trip-planner');
+    }
   };
+
+  // Determine if we should show the custom 404 page
+  const isNotFound = currentPath !== '/' && currentPath !== '' && currentPath !== '/index.html';
+
+  if (isNotFound) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-900 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">
+        <NotFound
+          onNavigateHome={handleNavigateHome}
+          onSelectDestination={handleSelectDestination}
+        />
+        <FloatingWhatsApp />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-slate-800 selection:bg-emerald-100 selection:text-emerald-900 pb-16 sm:pb-0">
       {/* Top Header */}
-      <Header onPlanTripClick={() => scrollToSection('trip-planner')} />
+      <Header
+        onPlanTripClick={() => scrollToSection('trip-planner')}
+        onNavigateHome={handleNavigateHome}
+      />
 
       {/* Main Sections */}
       <main className="flex-1">
@@ -95,7 +154,10 @@ export default function App() {
       </main>
 
       {/* Minimalist Brand Footer */}
-      <Footer />
+      <Footer
+        onNavigate={navigateTo}
+        onNavigateSection={(sectionId) => scrollToSection(sectionId)}
+      />
 
       {/* Day-by-Day Itinerary Modal */}
       <ItineraryModal

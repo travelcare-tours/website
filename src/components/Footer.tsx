@@ -3,11 +3,24 @@ import { Phone, Mail, MapPin, Clock, ArrowUp } from 'lucide-react';
 import { COMPANY_DETAILS, TOUR_PACKAGES } from '../data/travelData';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onNavigate?: (path: string) => void;
+  onNavigateSection?: (sectionId: string) => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateSection }) => {
   const currentYear = new Date().getFullYear();
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (!el && onNavigateSection) {
+      e.preventDefault();
+      onNavigateSection(sectionId);
+    }
   };
 
   return (
@@ -50,33 +63,47 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-2 text-slate-400">
               <li>
-                <a href="#packages" className="hover:text-brand-green-soft transition-colors">
+                <a href="#packages" onClick={(e) => handleLinkClick(e, 'packages')} className="hover:text-brand-green-soft transition-colors">
                   Tour Packages
                 </a>
               </li>
               <li>
-                <a href="#destinations" className="hover:text-brand-green-soft transition-colors">
+                <a href="#destinations" onClick={(e) => handleLinkClick(e, 'destinations')} className="hover:text-brand-green-soft transition-colors">
                   Kerala Destinations
                 </a>
               </li>
               <li>
-                <a href="#services" className="hover:text-brand-green-soft transition-colors">
+                <a href="#services" onClick={(e) => handleLinkClick(e, 'services')} className="hover:text-brand-green-soft transition-colors">
                   Cab, Hotel &amp; Houseboat Services
                 </a>
               </li>
               <li>
-                <a href="#trip-planner" className="hover:text-brand-green-soft transition-colors">
+                <a href="#trip-planner" onClick={(e) => handleLinkClick(e, 'trip-planner')} className="hover:text-brand-green-soft transition-colors">
                   Instant Trip Planner
                 </a>
               </li>
               <li>
-                <a href="#why-us" className="hover:text-brand-green-soft transition-colors">
+                <a href="#why-us" onClick={(e) => handleLinkClick(e, 'why-us')} className="hover:text-brand-green-soft transition-colors">
                   Why Travel Care
                 </a>
               </li>
               <li>
-                <a href="#faqs" className="hover:text-brand-green-soft transition-colors">
+                <a href="#faqs" onClick={(e) => handleLinkClick(e, 'faqs')} className="hover:text-brand-green-soft transition-colors">
                   FAQs &amp; Tips
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/404"
+                  onClick={(e) => {
+                    if (onNavigate) {
+                      e.preventDefault();
+                      onNavigate('/404');
+                    }
+                  }}
+                  className="hover:text-brand-green-soft transition-colors inline-flex items-center gap-1 text-slate-500 hover:text-slate-300"
+                >
+                  <span>404 Error Page</span>
                 </a>
               </li>
             </ul>

@@ -5,9 +5,10 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 
 interface HeaderProps {
   onPlanTripClick?: () => void;
+  onNavigateHome?: (sectionId?: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onPlanTripClick }) => {
+export const Header: React.FC<HeaderProps> = ({ onPlanTripClick, onNavigateHome }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -39,6 +40,8 @@ export const Header: React.FC<HeaderProps> = ({ onPlanTripClick }) => {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
+    } else if (onNavigateHome) {
+      onNavigateHome(sectionId);
     }
   };
 
