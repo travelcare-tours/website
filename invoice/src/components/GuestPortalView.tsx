@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { TripRecord, CompanySettings } from '../types';
-import { formatCurrency, formatNumber, generateUpiPaymentUrl } from '../utils/calculations';
+import { formatCurrency, formatNumber, generateUpiPaymentUrl, generateWhatsAppMessage } from '../utils/calculations';
 import { TravelCareLogo } from './TravelCareLogo';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 import confetti from 'canvas-confetti';
 import { 
@@ -21,7 +21,8 @@ import {
   ExternalLink,
   Car,
   FileCheck,
-  Check
+  Check,
+  MessageCircle
 } from 'lucide-react';
 
 interface GuestPortalViewProps {
@@ -93,6 +94,22 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
     window.print();
   };
 
+  const handleShareWhatsApp = () => {
+    const message = generateWhatsAppMessage(trip, companySettings, true);
+    const cleanPhone = trip.customerPhone ? trip.customerPhone.replace(/[^0-9]/g, '') : '';
+    let targetPhone = cleanPhone;
+    if (targetPhone.length === 10) {
+      targetPhone = `91${targetPhone}`;
+    }
+
+    const encodedText = encodeURIComponent(message);
+    const whatsappUrl = targetPhone 
+      ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodedText}`
+      : `https://api.whatsapp.com/send?text=${encodedText}`;
+
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 py-6 px-3 sm:px-6 flex flex-col justify-between">
       <div className="max-w-2xl mx-auto w-full space-y-4">
@@ -111,9 +128,19 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
 
           <div className="flex items-center space-x-2">
             <button
+              onClick={handleShareWhatsApp}
+              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+              title="Share invoice on WhatsApp"
+            >
+              <MessageCircle className="w-3.5 h-3.5 mr-1" />
+              <span>WhatsApp</span>
+            </button>
+
+            <button
               onClick={handleDownloadPdf}
               disabled={isExportingPdf}
               className="inline-flex items-center px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer shadow-xs"
+              title="Download PDF bill"
             >
               {downloadSuccess ? (
                 <>
@@ -126,14 +153,6 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
                   <span>{isExportingPdf ? 'Exporting...' : 'PDF Bill'}</span>
                 </>
               )}
-            </button>
-
-            <button
-              onClick={handlePrint}
-              className="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition-colors cursor-pointer"
-            >
-              <Printer className="w-3.5 h-3.5 mr-1" />
-              <span>Print</span>
             </button>
 
             {onExitGuestMode && (

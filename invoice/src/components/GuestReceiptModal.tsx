@@ -1,6 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TripRecord, CompanySettings } from '../types';
-import { formatCurrency, formatNumber, generateUpiPaymentUrl } from '../utils/calculations';
+import { 
+  formatCurrency, 
+  formatNumber, 
+  generateUpiPaymentUrl, 
+  generateWhatsAppMessage, 
+  generateGuestShareUrl 
+} from '../utils/calculations';
 import { TravelCareLogo } from './TravelCareLogo';
 import { 
   X, 
@@ -19,7 +25,10 @@ import {
   Calendar,
   CreditCard,
   Building2,
-  Navigation
+  Navigation,
+  MessageCircle,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface GuestReceiptModalProps {
@@ -28,7 +37,7 @@ interface GuestReceiptModalProps {
   onClose: () => void;
   onDownloadPdf: () => void;
   onDirectSharePdf: () => void;
-  onPrint: () => void;
+  onPrint?: () => void;
 }
 
 export const GuestReceiptModal: React.FC<GuestReceiptModalProps> = ({
@@ -39,12 +48,41 @@ export const GuestReceiptModal: React.FC<GuestReceiptModalProps> = ({
   onDirectSharePdf,
   onPrint,
 }) => {
+  const [copiedLink, setCopiedLink] = useState(false);
   const currency = companySettings.currencySymbol || '₹';
   const isPaid = trip.balanceAmount <= 0;
   const upiUrl = generateUpiPaymentUrl(companySettings, trip);
+  const guestLink = generateGuestShareUrl(trip);
   const qrCodeImgUrl = upiUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUrl)}&margin=10`
     : '';
+
+  // WhatsApp share handler
+  const handleShareWhatsApp = () => {
+    const message = generateWhatsAppMessage(trip, companySettings, true);
+    const cleanPhone = trip.customerPhone ? trip.customerPhone.replace(/[^0-9]/g, '') : '';
+    let targetPhone = cleanPhone;
+    if (targetPhone.length === 10) {
+      targetPhone = `91${targetPhone}`;
+    }
+
+    const encodedText = encodeURIComponent(message);
+    const whatsappUrl = targetPhone 
+      ? `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodedText}`
+      : `https://api.whatsapp.com/send?text=${encodedText}`;
+
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(guestLink);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch (e) {
+      console.error('Failed to copy', e);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
@@ -348,39 +386,55 @@ export const GuestReceiptModal: React.FC<GuestReceiptModalProps> = ({
 
         </div>
 
-        {/* Modal Action Footer */}
+        {/* Modal Action Footer: Optimized for Share & Download */}
         <div className="bg-white border-t border-slate-200 p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-2">
-          <button
-            onClick={onClose}
-            className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-          >
-            Close View
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              Close View
+            </button>
+            <button
+              onClick={handleCopyLink}
+              title="Copy online invoice link"
+              className="px-2.5 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer inline-flex items-center gap-1"
+            >
+              {copiedLink ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-emerald-700 font-bold">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy Link</span>
+                </>
+              )}
+            </button>
+          </div>
 
           <div className="flex items-center flex-wrap gap-2">
+            {/* 1. Primary: Share to WhatsApp */}
             <button
-              onClick={onDirectSharePdf}
-              className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
-              title="Directly share the PDF to WhatsApp or any app"
+              id="btn-guest-modal-whatsapp"
+              onClick={handleShareWhatsApp}
+              className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors cursor-pointer"
+              title="Share digital invoice to WhatsApp"
             >
-              <Share2 className="w-3.5 h-3.5 mr-1.5" />
-              Share PDF
+              <MessageCircle className="w-4 h-4 mr-1.5" />
+              <span>Share to WhatsApp</span>
             </button>
 
+            {/* 2. Download PDF */}
             <button
+              id="btn-guest-modal-download"
               onClick={onDownloadPdf}
-              className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
+              className="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
+              title="Download official PDF copy"
             >
               <Download className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
-              Download PDF
-            </button>
-
-            <button
-              onClick={onPrint}
-              className="inline-flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 transition-colors cursor-pointer"
-            >
-              <Printer className="w-3.5 h-3.5 mr-1.5" />
-              Print
+              <span>Download PDF</span>
             </button>
           </div>
         </div>

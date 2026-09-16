@@ -21,7 +21,15 @@ export default function App() {
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('app') === 'invoice' || urlParams.get('mode') === 'invoice') {
+      if (
+        urlParams.get('app') === 'invoice' || 
+        urlParams.get('mode') === 'invoice' ||
+        urlParams.has('b') ||
+        urlParams.has('bill') ||
+        urlParams.has('invoice') ||
+        urlParams.has('d') ||
+        urlParams.has('data')
+      ) {
         return '/invoice';
       }
       return window.location.pathname || '/';
@@ -39,7 +47,15 @@ export default function App() {
   useEffect(() => {
     const handleLocationChange = () => {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('app') === 'invoice' || urlParams.get('mode') === 'invoice') {
+      if (
+        urlParams.get('app') === 'invoice' || 
+        urlParams.get('mode') === 'invoice' ||
+        urlParams.has('b') ||
+        urlParams.has('bill') ||
+        urlParams.has('invoice') ||
+        urlParams.has('d') ||
+        urlParams.has('data')
+      ) {
         setCurrentPath('/invoice');
       } else {
         setCurrentPath(window.location.pathname || '/');

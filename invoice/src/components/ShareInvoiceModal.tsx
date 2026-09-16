@@ -2,24 +2,26 @@ import React, { useState } from 'react';
 import { TripRecord, CompanySettings } from '../types';
 import { 
   formatCurrency, 
+  formatNumber,
   generateWhatsAppMessage, 
-  generateGuestShareUrl,
-  generateUpiPaymentUrl 
+  generateGuestShareUrl 
 } from '../utils/calculations';
 import { 
   X, 
   Share2, 
   Copy, 
   Check, 
-  Send, 
   Download, 
   QrCode, 
   Smartphone, 
-  FileText, 
-  CheckCircle2,
-  Sparkles,
-  Link,
-  MessageCircle
+  Link2, 
+  MessageCircle, 
+  CheckCircle2, 
+  Clock, 
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  FileText
 } from 'lucide-react';
 
 interface ShareInvoiceModalProps {
@@ -28,7 +30,7 @@ interface ShareInvoiceModalProps {
   onClose: () => void;
   onDownloadPdf: () => void;
   onDirectSharePdf: () => void;
-  onPrint: () => void;
+  onPrint?: () => void;
   onOpenGuestPortal: () => void;
 }
 
@@ -38,23 +40,26 @@ export const ShareInvoiceModal: React.FC<ShareInvoiceModalProps> = ({
   onClose,
   onDownloadPdf,
   onDirectSharePdf,
-  onPrint,
   onOpenGuestPortal,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
-  const [showQrExpanded, setShowQrExpanded] = useState(false);
+  const [customPhone, setCustomPhone] = useState(trip.customerPhone || '');
+  const [showQrCode, setShowQrCode] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
 
   const currency = companySettings.currencySymbol || '₹';
+  const isPaid = trip.balanceAmount <= 0;
   const guestLink = generateGuestShareUrl(trip);
   const fullWhatsAppText = generateWhatsAppMessage(trip, companySettings, true);
 
-  // QR Code URL for the live guest link
+  // High quality QR Code for in-person scanning
   const linkQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(guestLink)}&margin=10`;
 
-  // WhatsApp click handler
+  // WhatsApp click handler with phone validation & automatic country code prefix (+91 default for 10-digit Indian numbers)
   const handleOpenWhatsApp = () => {
-    const cleanPhone = trip.customerPhone ? trip.customerPhone.replace(/[^0-9]/g, '') : '';
+    const rawPhone = customPhone.trim() || trip.customerPhone || '';
+    const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
     let targetPhone = cleanPhone;
     if (targetPhone.length === 10) {
       targetPhone = `91${targetPhone}`;
@@ -89,207 +94,290 @@ export const ShareInvoiceModal: React.FC<ShareInvoiceModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+    <div 
+      id="modal-share-invoice"
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
+    >
+      <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[94vh] animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Header */}
+        {/* Modal Header */}
         <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-              <Share2 className="w-4 h-4" />
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
+              <MessageCircle className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold tracking-tight">Share Invoice with Guest</h2>
-              <p className="text-xs text-slate-400">Invoice {trip.billNo} • {trip.customerName}</p>
+              <h2 className="text-base font-bold tracking-tight">Share Digital Guest Invoice</h2>
+              <p className="text-xs text-slate-400 font-medium">Invoice {trip.billNo} • {trip.customerName}</p>
             </div>
           </div>
           <button
+            id="btn-close-share-modal"
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 bg-slate-50">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 bg-slate-50/60">
+
+          {/* Quick Invoice Glance Summary */}
+          <div className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Due</span>
+              <span className="font-mono text-base font-bold text-slate-900">
+                {formatCurrency(trip.balanceAmount, currency)}
+              </span>
+            </div>
+            <div className="text-right">
+              {isPaid ? (
+                <span className="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                  Paid in Full
+                </span>
+              ) : (
+                <span className="inline-flex items-center text-xs font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-full">
+                  <Clock className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                  Payment Due
+                </span>
+              )}
+            </div>
+          </div>
           
-          {/* Method 1: Live Guest Web Link (Most Reliable - Works on ANY Phone) */}
-          <div className="bg-white rounded-xl p-4 border border-blue-200 shadow-xs space-y-3">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">1</span>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm flex items-center">
-                    <span>Live Guest Web Link</span>
-                    <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                      Recommended
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-500">Guest clicks link to view official invoice, download PDF & pay via UPI</p>
+          {/* PRIMARY HERO ACTION: Share Digital Invoice to WhatsApp */}
+          <div className="bg-linear-to-br from-emerald-50 via-white to-emerald-50/50 rounded-2xl p-4 sm:p-5 border-2 border-emerald-400/80 shadow-sm space-y-3.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-0.5">
+                <span className="inline-flex items-center text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Primary Action
+                </span>
+                <h3 className="font-bold text-slate-900 text-sm sm:text-base mt-1">
+                  Send Digital Invoice to WhatsApp
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Sends full trip details + secure online link directly to client's phone.
+                </p>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <MessageCircle className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* Target WhatsApp Number Input Field */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-slate-700 block">
+                Client's WhatsApp Number:
+              </label>
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 font-mono">
+                    +91
+                  </span>
+                  <input
+                    id="input-whatsapp-phone"
+                    type="tel"
+                    value={customPhone}
+                    onChange={(e) => setCustomPhone(e.target.value)}
+                    placeholder="Enter 10-digit WhatsApp number"
+                    className="w-full pl-11 pr-3 py-2 text-xs font-mono font-medium rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Link Box */}
-            <div className="flex items-center space-x-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
-              <Link className="w-4 h-4 text-blue-600 shrink-0 ml-1" />
+            {/* Prominent Send to WhatsApp Button */}
+            <button
+              id="btn-send-whatsapp-client"
+              onClick={handleOpenWhatsApp}
+              className="w-full inline-flex items-center justify-center px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer gap-2"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Share to WhatsApp ({customPhone || trip.customerPhone || 'Direct'})</span>
+            </button>
+          </div>
+
+          {/* SECONDARY ACTION: Download & Preview Flow */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Download Official PDF */}
+            <button
+              id="btn-modal-download-pdf"
+              onClick={onDownloadPdf}
+              className="p-3.5 rounded-xl border border-slate-200 bg-white hover:bg-blue-50/50 hover:border-blue-200 text-left transition-all flex items-center space-x-3 cursor-pointer group shadow-2xs"
+            >
+              <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                <Download className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="font-bold text-xs text-slate-900 block truncate">Download PDF</span>
+                <span className="text-[11px] text-slate-500 block truncate">Official stamp receipt</span>
+              </div>
+            </button>
+
+            {/* View Digital Guest View */}
+            <button
+              id="btn-modal-preview-guest"
+              onClick={onOpenGuestPortal}
+              className="p-3.5 rounded-xl border border-slate-200 bg-white hover:bg-indigo-50/50 hover:border-indigo-200 text-left transition-all flex items-center space-x-3 cursor-pointer group shadow-2xs"
+            >
+              <div className="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                <Smartphone className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="font-bold text-xs text-slate-900 block truncate">Digital Guest View</span>
+                <span className="text-[11px] text-slate-500 block truncate">Mobile receipt with UPI</span>
+              </div>
+            </button>
+          </div>
+
+          {/* Digital Guest Web Link Copy Box */}
+          <div className="bg-white rounded-xl p-3.5 border border-slate-200 shadow-2xs space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Link2 className="w-3.5 h-3.5 text-blue-600" />
+                <span>Online Digital Invoice Link</span>
+              </span>
+              <button
+                id="btn-preview-link-portal"
+                onClick={onOpenGuestPortal}
+                className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+              >
+                <span>Open Link</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
               <input
+                id="input-guest-share-url"
                 type="text"
                 readOnly
                 value={guestLink}
-                className="w-full text-xs font-mono text-slate-700 bg-transparent border-none focus:outline-hidden truncate"
+                className="w-full text-[11px] font-mono text-slate-700 bg-transparent border-none focus:outline-none truncate"
               />
               <button
+                id="btn-copy-guest-url"
                 onClick={handleCopyLink}
                 className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all shrink-0 flex items-center space-x-1 cursor-pointer ${
                   copiedLink 
                     ? 'bg-emerald-600 text-white' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    : 'bg-slate-900 hover:bg-slate-800 text-white'
                 }`}
               >
                 {copiedLink ? (
                   <>
-                    <Check className="w-3.5 h-3.5 mr-1" />
-                    <span>Copied!</span>
+                    <Check className="w-3 h-3 mr-1" />
+                    <span>Copied</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5 mr-1" />
-                    <span>Copy Link</span>
+                    <Copy className="w-3 h-3 mr-1" />
+                    <span>Copy</span>
                   </>
                 )}
               </button>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              {/* Send on WhatsApp Button */}
-              <button
-                onClick={handleOpenWhatsApp}
-                className="flex-1 inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer space-x-1.5"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>Send to WhatsApp {trip.customerPhone ? `(${trip.customerPhone})` : ''}</span>
-              </button>
-
-              {/* Test Guest View */}
-              <button
-                onClick={onOpenGuestPortal}
-                className="inline-flex items-center justify-center px-3 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold border border-slate-200 transition-colors cursor-pointer space-x-1"
-                title="Preview how guest will see it"
-              >
-                <Smartphone className="w-3.5 h-3.5 text-slate-600" />
-                <span>Preview Guest View</span>
-              </button>
-            </div>
           </div>
 
-          {/* Method 2: Share PDF File Directly */}
-          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3">
-            <div className="flex items-center space-x-2">
-              <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">2</span>
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm">PDF Documents</h3>
-                <p className="text-xs text-slate-500">Send or download official A4 document with agency stamps</p>
-              </div>
-            </div>
+          {/* Collapsible More Options: QR Code Scan, Copy Text, Direct PDF App Share */}
+          <div className="border border-slate-200 rounded-xl bg-white overflow-hidden shadow-2xs">
+            <button
+              onClick={() => setShowMoreOptions(!showMoreOptions)}
+              className="w-full px-4 py-2.5 flex items-center justify-between text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+            >
+              <span>More Sharing Options (In-Person QR, Native Share, Text)</span>
+              {showMoreOptions ? (
+                <ChevronUp className="w-4 h-4 text-slate-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+              )}
+            </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <button
-                onClick={onDirectSharePdf}
-                className="p-3.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-left transition-colors flex items-center space-x-3 cursor-pointer group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-                  <Share2 className="w-4 h-4" />
+            {showMoreOptions && (
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 space-y-3 text-xs animate-in fade-in duration-150">
+                {/* QR Code toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-800 block">In-Person QR Code</span>
+                    <span className="text-[11px] text-slate-500">Scan camera directly from device</span>
+                  </div>
+                  <button
+                    onClick={() => setShowQrCode(!showQrCode)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 cursor-pointer"
+                  >
+                    <QrCode className="w-3 h-3 text-slate-600" />
+                    <span>{showQrCode ? 'Hide QR' : 'Show QR'}</span>
+                  </button>
                 </div>
-                <div>
-                  <span className="font-bold text-xs text-slate-900 block">Share PDF File</span>
-                  <span className="text-[10px] text-slate-500">Send file via WhatsApp / Apps</span>
-                </div>
-              </button>
 
-              <button
-                onClick={onDownloadPdf}
-                className="p-3.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-200 text-left transition-colors flex items-center space-x-3 cursor-pointer group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-slate-200 text-slate-800 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-                  <Download className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="font-bold text-xs text-slate-900 block">Download PDF</span>
-                  <span className="text-[10px] text-slate-500">Save crisp A4 to device</span>
-                </div>
-              </button>
-            </div>
-          </div>
+                {showQrCode && (
+                  <div className="flex flex-col sm:flex-row items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 text-center sm:text-left">
+                    <img
+                      src={linkQrCodeUrl}
+                      alt="Invoice QR"
+                      className="w-24 h-24 bg-white p-1 rounded-lg border border-slate-200 shadow-2xs shrink-0"
+                    />
+                    <div className="text-[11px] text-slate-600 space-y-1">
+                      <p className="font-bold text-slate-900">Scan to Open Digital Invoice</p>
+                      <p className="text-slate-500">Guest scans this with camera to open instant bill & pay via UPI.</p>
+                      <p className="font-mono text-slate-400 text-[10px]">Invoice: {trip.billNo}</p>
+                    </div>
+                  </div>
+                )}
 
-          {/* Method 3: In-Person QR Code Scan */}
-          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">3</span>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">In-Person QR Code</h3>
-                  <p className="text-xs text-slate-500">Guest scans this with their phone camera</p>
+                {/* Direct App Share / Web Share API */}
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                  <div>
+                    <span className="font-bold text-slate-800 block">Share PDF via App</span>
+                    <span className="text-[11px] text-slate-500">Uses device share menu (WhatsApp, Email, etc.)</span>
+                  </div>
+                  <button
+                    onClick={onDirectSharePdf}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 cursor-pointer"
+                  >
+                    <Share2 className="w-3 h-3" />
+                    <span>Share PDF</span>
+                  </button>
                 </div>
-              </div>
-              <button
-                onClick={() => setShowQrExpanded(!showQrExpanded)}
-                className="text-xs text-blue-600 hover:text-blue-800 font-bold cursor-pointer"
-              >
-                {showQrExpanded ? 'Hide QR' : 'Show QR'}
-              </button>
-            </div>
 
-            {showQrExpanded && (
-              <div className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200 text-center sm:text-left animate-in fade-in duration-150">
-                <img
-                  src={linkQrCodeUrl}
-                  alt="Invoice QR"
-                  className="w-28 h-28 bg-white p-1.5 rounded-lg border border-slate-200 shadow-xs shrink-0"
-                />
-                <div className="text-xs space-y-1">
-                  <p className="font-bold text-slate-900">Scan to Open Invoice on Mobile</p>
-                  <p className="text-slate-500">Guest can point standard phone camera at this QR code to view the live bill without typing anything.</p>
-                  <p className="text-slate-400 font-mono text-[10px]">Invoice: {trip.billNo}</p>
+                {/* Copy Formatted Text */}
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                  <div>
+                    <span className="font-bold text-slate-800 block">Copy Text Message</span>
+                    <span className="text-[11px] text-slate-500">Full itemized WhatsApp text copy</span>
+                  </div>
+                  <button
+                    onClick={handleCopySummary}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 cursor-pointer"
+                  >
+                    {copiedText ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copy Text</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Method 4: Copy Formatted Text Message */}
-          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">4</span>
-              <div>
-                <h3 className="font-bold text-slate-900 text-xs sm:text-sm">Copy Formatted Text Message</h3>
-                <p className="text-[11px] text-slate-500">Full itemized breakdown text with route & total</p>
-              </div>
-            </div>
-            <button
-              onClick={handleCopySummary}
-              className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors cursor-pointer"
-            >
-              {copiedText ? (
-                <>
-                  <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                  <span>Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 mr-1" />
-                  <span>Copy Text</span>
-                </>
-              )}
-            </button>
           </div>
 
         </div>
 
         {/* Modal Footer */}
         <div className="bg-white border-t border-slate-200 px-5 py-3 flex items-center justify-between">
-          <span className="text-xs text-slate-500">Total Due: <b>{formatCurrency(trip.balanceAmount, currency)}</b></span>
+          <span className="text-xs text-slate-500">
+            Invoice: <b className="font-mono text-slate-800">{trip.billNo}</b>
+          </span>
           <button
+            id="btn-done-share-modal"
             onClick={onClose}
             className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer"
           >

@@ -4,7 +4,7 @@ import { formatCurrency, formatNumber, generateWhatsAppMessage, generateUpiPayme
 import { TravelCareLogo } from './TravelCareLogo';
 import { GuestReceiptModal } from './GuestReceiptModal';
 import { ShareInvoiceModal } from './ShareInvoiceModal';
-import html2canvas from 'html2canvas';
+import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 import confetti from 'canvas-confetti';
 import { 
@@ -34,7 +34,8 @@ import {
   CreditCard,
   Sparkles,
   AlertCircle,
-  Link
+  Link,
+  MessageCircle
 } from 'lucide-react';
 
 interface InvoiceViewProps {
@@ -253,40 +254,40 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
           </div>
         </div>
 
-        {/* Right: Primary Actions with Simple Color Codes */}
+        {/* Right: Primary Actions - Streamlined Share & Download Flow */}
         <div className="flex items-center flex-wrap gap-2">
           
-          {/* SHARE BILL (Green / Primary Dispatch CTA) */}
+          {/* SHARE TO WHATSAPP / SHARE DIGITAL INVOICE (Primary Emerald CTA) */}
           <button
             id="btn-share-hub"
             onClick={() => setShowShareModal(true)}
-            className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs transition-colors cursor-pointer"
-            title="Share Bill via WhatsApp, Link, PDF or QR Code"
+            className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] shadow-sm transition-all cursor-pointer gap-1.5"
+            title="Share Digital Invoice to WhatsApp Number"
           >
-            <Share2 className="w-3.5 h-3.5 mr-1.5" />
-            <span>Share Bill</span>
+            <MessageCircle className="w-4 h-4" />
+            <span>Share & WhatsApp</span>
           </button>
 
-          {/* DOWNLOAD PDF (Blue / Document Export) */}
+          {/* DOWNLOAD PDF (Primary Slate / Document Export CTA) */}
           <button
             id="btn-download-pdf"
             disabled={isExportingPdf}
             onClick={handleDownloadPdf}
-            className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-            title="Download PDF to device"
+            className="inline-flex items-center px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 active:scale-[0.98] shadow-xs transition-all cursor-pointer disabled:opacity-50 gap-1.5"
+            title="Download official PDF to device"
           >
-            <Download className="w-3.5 h-3.5 mr-1.5" />
-            {isExportingPdf ? 'Exporting...' : 'Download PDF'}
+            <Download className="w-3.5 h-3.5 text-blue-400" />
+            <span>{isExportingPdf ? 'Exporting...' : 'Download PDF'}</span>
           </button>
 
           {/* GUEST VIEW (Indigo / Digital Preview) */}
           <button
             id="btn-guest-view"
             onClick={() => setShowGuestModal(true)}
-            className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer"
+            className="inline-flex items-center px-3 py-2 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer gap-1.5"
             title="Open clean digital guest invoice view"
           >
-            <Smartphone className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+            <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
             <span>Guest View</span>
           </button>
 
@@ -294,10 +295,10 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
           <button
             id="btn-edit-trip"
             onClick={() => onEditTrip(trip)}
-            className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer"
+            className="inline-flex items-center px-3 py-2 rounded-xl text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer gap-1"
             title="Edit trip details and recalculate"
           >
-            <Edit3 className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
+            <Edit3 className="w-3.5 h-3.5 text-amber-600" />
             <span>Edit</span>
           </button>
 
@@ -305,18 +306,18 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
           <button
             id="btn-copy-summary"
             onClick={handleCopyText}
-            className="inline-flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors cursor-pointer"
+            className="inline-flex items-center px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors cursor-pointer gap-1"
             title={copiedText ? "Copied!" : "Copy Text Summary"}
           >
             {copiedText ? (
               <>
-                <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
                 <span className="text-emerald-700 font-bold">Copied</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
-                <span>Copy Summary</span>
+                <Copy className="w-3.5 h-3.5 text-slate-500" />
+                <span>Copy</span>
               </>
             )}
           </button>
@@ -325,15 +326,15 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
       </div>
 
       {/* Guest Viewing & Sharing Info Banner */}
-      <div className="no-print mb-4 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs text-blue-900">
+      <div className="no-print mb-4 bg-linear-to-r from-emerald-50 via-teal-50 to-blue-50 border border-emerald-200/80 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-800">
         <div className="flex items-center space-x-2.5">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <MessageCircle className="w-4 h-4" />
           </div>
           <div>
-            <span className="font-bold block">Quick Ways to Share this Bill with your Guest:</span>
-            <span className="text-blue-800 text-[11px]">
-              1. <b>Live Guest Web Link</b> (Click & pay online) • 2. <b>WhatsApp Summary</b> • 3. <b>PDF File</b> • 4. <b>In-person QR Scan</b>
+            <span className="font-bold text-slate-900 block">Digital Guest Invoice Experience:</span>
+            <span className="text-slate-600 text-[11px]">
+              Share the instant digital invoice directly to client's <b>WhatsApp number</b> with online view, UPI payment, & download.
             </span>
           </div>
         </div>
@@ -341,10 +342,10 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowShareModal(true)}
-            className="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 shadow-xs transition-colors cursor-pointer inline-flex items-center space-x-1"
+            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 shadow-xs transition-colors cursor-pointer inline-flex items-center space-x-1.5"
           >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>Open Share Options</span>
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>Share to WhatsApp</span>
           </button>
         </div>
       </div>
