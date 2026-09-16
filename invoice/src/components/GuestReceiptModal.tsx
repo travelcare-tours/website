@@ -1,0 +1,391 @@
+import React from 'react';
+import { TripRecord, CompanySettings } from '../types';
+import { formatCurrency, formatNumber, generateUpiPaymentUrl } from '../utils/calculations';
+import { TravelCareLogo } from './TravelCareLogo';
+import { 
+  X, 
+  CheckCircle2, 
+  Clock, 
+  Car, 
+  User, 
+  Phone, 
+  MapPin, 
+  Download, 
+  Printer, 
+  Share2, 
+  QrCode, 
+  ExternalLink,
+  ShieldCheck,
+  Calendar,
+  CreditCard,
+  Building2,
+  Navigation
+} from 'lucide-react';
+
+interface GuestReceiptModalProps {
+  trip: TripRecord;
+  companySettings: CompanySettings;
+  onClose: () => void;
+  onDownloadPdf: () => void;
+  onDirectSharePdf: () => void;
+  onPrint: () => void;
+}
+
+export const GuestReceiptModal: React.FC<GuestReceiptModalProps> = ({
+  trip,
+  companySettings,
+  onClose,
+  onDownloadPdf,
+  onDirectSharePdf,
+  onPrint,
+}) => {
+  const currency = companySettings.currencySymbol || '₹';
+  const isPaid = trip.balanceAmount <= 0;
+  const upiUrl = generateUpiPaymentUrl(companySettings, trip);
+  const qrCodeImgUrl = upiUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiUrl)}&margin=10`
+    : '';
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+      <div 
+        className="relative bg-white rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200"
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Modal Top Bar */}
+        <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-300">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold tracking-tight text-white">Digital Guest Invoice</h2>
+              <p className="text-[11px] text-slate-400">Mobile-friendly live invoice summary</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Scrollable Receipt Body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50">
+          
+          {/* Main Digital Receipt Card */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
+            
+            {/* Header / Brand */}
+            <div className="text-center pb-4 border-b border-slate-100">
+              <div className="flex justify-center mb-2">
+                <TravelCareLogo
+                  size="md"
+                  showText={true}
+                  customLogoUrl={companySettings.logoUrl}
+                  className="h-12 sm:h-14 w-auto max-w-[240px]"
+                />
+              </div>
+              <h3 className="font-bold text-slate-900 text-base sm:text-lg">{companySettings.companyName}</h3>
+              <p className="text-xs text-slate-500">{companySettings.tagline}</p>
+              <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 text-xs text-slate-600 mt-1.5 font-medium">
+                <a href={`tel:${companySettings.phone}`} className="hover:text-blue-600 inline-flex items-center">
+                  <Phone className="w-3 h-3 mr-1 text-slate-400" />
+                  {companySettings.phone}
+                </a>
+                <span>•</span>
+                <span className="inline-flex items-center">
+                  <MapPin className="w-3 h-3 mr-1 text-slate-400" />
+                  {companySettings.address}
+                </span>
+              </div>
+            </div>
+
+            {/* Status & Bill No Pill */}
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200/80">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Invoice Number</span>
+                <span className="font-mono font-bold text-slate-900 text-sm">{trip.billNo}</span>
+              </div>
+              <div>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                  isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+                }`}>
+                  {isPaid ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                      Paid in Full
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                      Payment Due: {formatCurrency(trip.balanceAmount, currency)}
+                    </>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            {/* Trip Itinerary / Route */}
+            <div className="bg-blue-50/60 rounded-xl p-3.5 border border-blue-100 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start space-x-2">
+                  <Navigation className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-blue-800 tracking-wider block">Trip Route</span>
+                    <p className="text-xs sm:text-sm font-bold text-slate-900">{trip.tripRoute}</p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] uppercase font-bold text-blue-800 tracking-wider block">Duration</span>
+                  <span className="text-xs font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200">
+                    {trip.durationText || `${trip.numberOfDays} Day(s)`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Timings */}
+              {(trip.pickupDate || trip.dropoffDate) && (
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200/50 text-[11px]">
+                  <div>
+                    <span className="text-slate-500 block font-medium">Pickup:</span>
+                    <span className="font-semibold text-slate-800">
+                      {trip.pickupDate} {trip.pickupTime ? `at ${trip.pickupTime}` : ''}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block font-medium">Drop-off:</span>
+                    <span className="font-semibold text-slate-800">
+                      {trip.dropoffDate} {trip.dropoffTime ? `at ${trip.dropoffTime}` : ''}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Guest & Driver Details Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              {/* Guest */}
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Guest Information</span>
+                <p className="font-bold text-slate-900 text-sm">{trip.customerName}</p>
+                {trip.customerPhone && (
+                  <p className="text-slate-600 mt-0.5 font-medium flex items-center">
+                    <Phone className="w-3 h-3 mr-1 text-slate-400" />
+                    {trip.customerPhone}
+                  </p>
+                )}
+              </div>
+
+              {/* Driver & Vehicle */}
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex flex-col justify-between">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-0.5">Driver & Vehicle</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-slate-900 text-sm">{trip.driverName}</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
+                      {trip.vehicleType}
+                    </span>
+                  </div>
+                  <p className="font-mono text-xs text-slate-700 font-semibold mt-0.5">{trip.vehicleNumber}</p>
+                </div>
+                {trip.driverPhone && (
+                  <a
+                    href={`tel:${trip.driverPhone}`}
+                    className="mt-2 inline-flex items-center justify-center px-2 py-1 rounded bg-white text-blue-700 hover:bg-blue-50 border border-blue-200 text-[11px] font-bold transition-colors"
+                  >
+                    <Phone className="w-3 h-3 mr-1" />
+                    Call Driver ({trip.driverPhone})
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Distance / Odometer Details */}
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Distance Reading</span>
+              <div className="grid grid-cols-3 gap-2 text-center font-mono">
+                <div className="bg-white p-2 rounded border border-slate-200/80">
+                  <span className="text-[10px] text-slate-500 font-sans block">Starting</span>
+                  <span className="font-bold text-slate-800">{formatNumber(trip.startingKm)} KM</span>
+                </div>
+                <div className="bg-white p-2 rounded border border-slate-200/80">
+                  <span className="text-[10px] text-slate-500 font-sans block">Closing</span>
+                  <span className="font-bold text-slate-800">{formatNumber(trip.closingKm)} KM</span>
+                </div>
+                <div className="bg-white p-2 rounded border border-slate-200/80">
+                  <span className="text-[10px] text-slate-500 font-sans block">Total Driven</span>
+                  <span className="font-bold text-blue-700">{formatNumber(trip.totalKm)} KM</span>
+                </div>
+              </div>
+              {trip.additionalKm > 0 && (
+                <p className="text-[11px] text-slate-600 mt-2 text-center font-medium">
+                  Included: {formatNumber(trip.includedKm)} KM • Billable Extra: <span className="font-bold text-blue-700">{formatNumber(trip.additionalKm)} KM</span> (@ {currency}{trip.ratePerKm}/KM)
+                </p>
+              )}
+            </div>
+
+            {/* Fare Summary Breakdown */}
+            <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+              <div className="bg-slate-100 px-3 py-2 font-bold text-slate-800 uppercase tracking-wider text-[10px]">
+                Fare Breakdown
+              </div>
+              <div className="divide-y divide-slate-100 p-3 space-y-2">
+                <div className="flex justify-between text-slate-700">
+                  <span>Vehicle Hire ({trip.numberOfDays} Days)</span>
+                  <span className="font-mono font-semibold">{formatCurrency(trip.vehicleHire, currency)}</span>
+                </div>
+
+                {trip.additionalKmAmount > 0 && (
+                  <div className="flex justify-between text-slate-700 pt-1.5">
+                    <span>Extra KM Charges ({formatNumber(trip.additionalKm)} KM)</span>
+                    <span className="font-mono font-semibold">{formatCurrency(trip.additionalKmAmount, currency)}</span>
+                  </div>
+                )}
+
+                {Boolean(trip.driverBata) && (
+                  <div className="flex justify-between text-slate-700 pt-1.5">
+                    <span>Driver Allowance / Bata</span>
+                    <span className="font-mono font-semibold">{formatCurrency(trip.driverBata, currency)}</span>
+                  </div>
+                )}
+
+                {Boolean(trip.tollParkingPermit) && (
+                  <div className="flex justify-between text-slate-700 pt-1.5">
+                    <span>Toll, Parking & Permits</span>
+                    <span className="font-mono font-semibold">{formatCurrency(trip.tollParkingPermit, currency)}</span>
+                  </div>
+                )}
+
+                {Boolean(trip.otherCharges) && (
+                  <div className="flex justify-between text-slate-700 pt-1.5">
+                    <span>Other Charges</span>
+                    <span className="font-mono font-semibold">{formatCurrency(trip.otherCharges, currency)}</span>
+                  </div>
+                )}
+
+                {Boolean(trip.adjustment) && (
+                  <div className="flex justify-between text-slate-700 pt-1.5">
+                    <span>Adjustment / Discount</span>
+                    <span className="font-mono font-semibold">{formatCurrency(trip.adjustment, currency)}</span>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t-2 border-slate-900 flex justify-between font-bold text-slate-900 text-sm">
+                  <span>Total Amount</span>
+                  <span className="font-mono">{formatCurrency(trip.totalAmount, currency)}</span>
+                </div>
+
+                <div className="flex justify-between text-slate-600 text-xs">
+                  <span>Advance Received ({trip.paymentMode})</span>
+                  <span className="font-mono text-emerald-700 font-semibold">- {formatCurrency(trip.advanceReceived, currency)}</span>
+                </div>
+
+                {trip.settlementAmount && trip.settlementAmount > 0 && (
+                  <div className="flex justify-between text-slate-600 text-xs">
+                    <span>Settlement Paid ({trip.settlementPaymentMode || 'Settled'})</span>
+                    <span className="font-mono text-emerald-700 font-semibold">- {formatCurrency(trip.settlementAmount, currency)}</span>
+                  </div>
+                )}
+
+                <div className={`pt-2 border-t border-slate-200 flex justify-between font-bold text-sm sm:text-base ${
+                  isPaid ? 'text-emerald-700' : 'text-blue-700'
+                }`}>
+                  <span>{isPaid ? 'PAID IN FULL' : 'BALANCE DUE'}</span>
+                  <span className="font-mono">{formatCurrency(Math.max(0, trip.balanceAmount), currency)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Instant UPI Payment Box for Guest if Pending */}
+            {!isPaid && companySettings.upiId && (
+              <div className="bg-linear-to-r from-blue-900 to-indigo-900 text-white rounded-xl p-4 shadow-md space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard className="w-5 h-5 text-blue-300" />
+                    <span className="font-bold text-sm">Instant UPI Payment</span>
+                  </div>
+                  <span className="text-xs bg-white/20 px-2 py-0.5 rounded font-mono font-bold">
+                    {formatCurrency(trip.balanceAmount, currency)}
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3 bg-white/10 p-3 rounded-lg backdrop-blur-xs">
+                  {qrCodeImgUrl && (
+                    <img 
+                      src={qrCodeImgUrl} 
+                      alt="UPI QR Code" 
+                      className="w-24 h-24 bg-white p-1.5 rounded-lg shrink-0 shadow-xs" 
+                    />
+                  )}
+                  <div className="text-center sm:text-left text-xs space-y-1">
+                    <p className="font-bold text-white">Scan with Google Pay, PhonePe, Paytm, or BHIM</p>
+                    <p className="text-blue-200 font-mono text-[11px]">UPI ID: {companySettings.upiId}</p>
+                    <p className="text-[10px] text-blue-300">Account: {companySettings.upiName || companySettings.companyName}</p>
+                    
+                    {/* Direct UPI App link on mobile devices */}
+                    <a
+                      href={upiUrl}
+                      className="inline-flex items-center px-3 py-1.5 mt-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-xs transition-colors"
+                    >
+                      <CreditCard className="w-3.5 h-3.5 mr-1" />
+                      Pay via UPI App
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Note / Terms */}
+            <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-slate-100">
+              Verified digital invoice issued by {companySettings.companyName}.
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Modal Action Footer */}
+        <div className="bg-white border-t border-slate-200 p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-2">
+          <button
+            onClick={onClose}
+            className="px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+          >
+            Close View
+          </button>
+
+          <div className="flex items-center flex-wrap gap-2">
+            <button
+              onClick={onDirectSharePdf}
+              className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
+              title="Directly share the PDF to WhatsApp or any app"
+            >
+              <Share2 className="w-3.5 h-3.5 mr-1.5" />
+              Share PDF
+            </button>
+
+            <button
+              onClick={onDownloadPdf}
+              className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
+              Download PDF
+            </button>
+
+            <button
+              onClick={onPrint}
+              className="inline-flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 transition-colors cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5 mr-1.5" />
+              Print
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
