@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, Mail, MapPin, Clock, ArrowUp, ShieldCheck } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, ArrowUp } from 'lucide-react';
 import { COMPANY_DETAILS, TOUR_PACKAGES } from '../data/travelData';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
@@ -41,18 +41,6 @@ export const Footer: React.FC = () => {
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
               Your Journey, Our Care. Licensed destination travel specialists crafting personalized Kerala holidays, backwater houseboats, and private chauffeur journeys across God's Own Country.
             </p>
-            <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-400">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10">
-                <ShieldCheck className="w-3 h-3 text-brand-green-soft" />
-                <span>Govt. Approved Agency</span>
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">
-                12+ Years Experience
-              </span>
-              <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10">
-                ★ 4.9 (1,840+ Reviews)
-              </span>
-            </div>
           </div>
 
           {/* Col 2: Quick Links */}
@@ -138,10 +126,6 @@ export const Footer: React.FC = () => {
                 <p className="text-xs text-slate-300 leading-relaxed pt-1">
                   {COMPANY_DETAILS.address}
                 </p>
-              </div>
-              <div className="pt-4 text-[11px] text-slate-400 flex items-center gap-1.5 border-t border-white/5 mt-4">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
-                <span>Direct Seaport-Airport Rd, Thrikkakara, Kochi</span>
               </div>
             </div>
 
@@ -239,8 +223,8 @@ export const Footer: React.FC = () => {
                   <div className="pt-1 flex items-start gap-2 text-slate-300">
                     <Clock className="w-4 h-4 text-brand-green-soft shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-slate-200 font-semibold">Daily 6:00 AM – 10:00 PM</span>
-                      <p className="text-[11px] text-slate-400">16/7 Active Guest Travel Support</p>
+                      <span className="text-slate-200 font-semibold">Daily 8:00 AM – 8:00 PM</span>
+                      <p className="text-[11px] text-slate-400">12/7 Active Guest Travel Support</p>
                     </div>
                   </div>
                 </div>

@@ -198,8 +198,8 @@ export const Hero: React.FC<HeroProps> = ({
                 <Headphones className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
               <div className="min-w-0">
-                <strong className="block text-[11px] sm:text-xs font-bold text-white tracking-wide truncate">16/7 Support</strong>
-                <span className="text-[9px] sm:text-[10px] text-slate-300 block truncate">6 AM – 10 PM care</span>
+                <strong className="block text-[11px] sm:text-xs font-bold text-white tracking-wide truncate">12/7 Support</strong>
+                <span className="text-[9px] sm:text-[10px] text-slate-300 block truncate">8 AM – 8 PM care</span>
               </div>
             </div>
           </div>

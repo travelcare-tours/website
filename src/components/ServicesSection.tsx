@@ -520,7 +520,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onPlanTripClic
                 <Clock className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-800">16/7 Guest Support</p>
+                <p className="text-xs font-bold text-slate-800">12/7 Guest Support</p>
                 <p className="text-[11px] text-slate-500">Instant trip coordination</p>
               </div>
             </div>
