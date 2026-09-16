@@ -7,6 +7,7 @@ import {
   History, 
   Settings, 
   TrendingUp,
+  Lock,
   Menu,
   X,
   ChevronRight,
@@ -21,6 +22,7 @@ interface NavbarProps {
   selectedTrip: TripRecord | null;
   totalTripsCount: number;
   onExportCsv: () => void;
+  onLock?: () => void;
 }
 
 export const Navbar = ({
@@ -28,6 +30,7 @@ export const Navbar = ({
   onViewChange,
   selectedTrip,
   totalTripsCount,
+  onLock,
 }: NavbarProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -48,7 +51,7 @@ export const Navbar = ({
             onClick={() => handleNavClick('create')}
           >
             <div className="w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12 bg-white rounded-xl p-1 flex items-center justify-center shadow-lg shadow-blue-500/10 ring-1 ring-white/20 transition-transform group-hover:scale-105 shrink-0">
-              <TravelCareLogo size="xs" showText={false} customLogoUrl="/TC Logo.png" className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10" />
+              <TravelCareLogo size="xs" showText={false} customLogoUrl="TC Logo.png" className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10" />
             </div>
             <div>
               <div className="flex items-center space-x-1.5 sm:space-x-2">
@@ -144,6 +147,19 @@ export const Navbar = ({
               <Settings className="w-4 h-4" />
               <span>Settings</span>
             </button>
+
+            {/* Lock / Exit Staff Portal Button */}
+            {onLock && (
+              <button
+                id="nav-btn-lock"
+                onClick={onLock}
+                title="Lock Staff Portal (Requires PIN 2030 to unlock)"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 lg:py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-rose-400 bg-slate-850 hover:bg-slate-800 border border-slate-700/80 transition-all cursor-pointer whitespace-nowrap"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline">Lock</span>
+              </button>
+            )}
           </div>
 
           {/* Mobile Right Controls: Prominent Action Button + Larger Hamburger Button */}
@@ -319,6 +335,30 @@ export const Navbar = ({
             </div>
             <ChevronRight className="w-5 h-5 opacity-70" />
           </button>
+
+          {/* Lock Staff Portal (Mobile) */}
+          {onLock && (
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onLock();
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold text-rose-300 bg-rose-950/30 hover:bg-rose-950/50 border border-rose-800/40 transition-all cursor-pointer"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-900/50 text-rose-400">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <div className="text-sm font-bold text-rose-200">Lock Staff Portal</div>
+                  <div className="text-xs text-rose-400/80">
+                    Sign out (Requires PIN 2030 to unlock)
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 opacity-70" />
+            </button>
+          )}
         </div>
       )}
     </header>

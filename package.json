@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
+    "build": "vite build && npm run build:invoice",
+    "build:invoice": "cd invoice && npm run build && cd .. && mkdir -p dist/invoice && cp -r invoice/dist/* dist/invoice/",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit"

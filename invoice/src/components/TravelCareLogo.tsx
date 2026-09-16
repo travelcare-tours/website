@@ -9,6 +9,17 @@ interface TravelCareLogoProps {
   variant?: 'header' | 'watermark' | 'icon' | 'default';
 }
 
+// Helper to resolve public assets correctly with Vite's BASE_URL (e.g. /invoice/ or ./)
+const resolveAsset = (path: string): string => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+    return path;
+  }
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  const base = import.meta.env.BASE_URL || '/';
+  return `${base}${cleanPath}`;
+};
+
 export const TravelCareLogo: React.FC<TravelCareLogoProps> = ({
   className = '',
   size = 'md',
@@ -20,13 +31,13 @@ export const TravelCareLogo: React.FC<TravelCareLogoProps> = ({
   const [imgError, setImgError] = useState(false);
   const [watermarkError, setWatermarkError] = useState(false);
 
-  // Determine active logo source
-  const primaryLogo = customLogoUrl || '/TC logo for word.png';
-  const fallbackLogo = '/header-logo.png';
+  // Determine active logo source with base URL resolution
+  const primaryLogo = resolveAsset(customLogoUrl || 'TC logo for word.png');
+  const fallbackLogo = resolveAsset('header-logo.png');
   const activeLogoUrl = imgError ? fallbackLogo : primaryLogo;
 
-  const primaryWatermark = customLogoUrl || '/TC logo for word.png';
-  const fallbackWatermark = '/watermark.svg';
+  const primaryWatermark = resolveAsset(customLogoUrl || 'TC logo for word.png');
+  const fallbackWatermark = resolveAsset('watermark.svg');
   const activeWatermarkUrl = watermarkError ? fallbackWatermark : primaryWatermark;
 
   // 1. Watermark rendering across invoice background
@@ -69,14 +80,15 @@ export const TravelCareLogo: React.FC<TravelCareLogoProps> = ({
   }
 
   // 3. Compact Icon only (for header nav / badges)
+  const iconSrc = customLogoUrl ? resolveAsset(customLogoUrl) : resolveAsset('TC Logo.png');
   return (
     <div className={`inline-flex items-center justify-center ${className}`}>
       <img
-        src={customLogoUrl || "/TC Logo.png"}
+        src={iconSrc}
         alt="Travel Care"
         referrerPolicy="no-referrer"
         onError={(e) => {
-          (e.currentTarget as HTMLImageElement).src = '/TC Logo.png';
+          (e.currentTarget as HTMLImageElement).src = resolveAsset('TC Logo.png');
         }}
         className="h-full w-full object-contain"
       />

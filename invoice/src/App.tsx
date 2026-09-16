@@ -9,8 +9,21 @@ import { TripHistory } from './components/TripHistory';
 import { AnalyticsView } from './components/AnalyticsView';
 import { CompanySettingsModal } from './components/CompanySettingsModal';
 import { GuestPortalView } from './components/GuestPortalView';
+import { PinLockScreen } from './components/PinLockScreen';
 
 export default function App() {
+  // Staff Authentication PIN (2030) State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    try {
+      return (
+        localStorage.getItem('tc_staff_pin_authorized') === 'true' ||
+        sessionStorage.getItem('tc_staff_pin_authorized') === 'true'
+      );
+    } catch {
+      return false;
+    }
+  });
+
   // Local storage loaded state
   const [trips, setTrips] = useState<TripRecord[]>(() => {
     try {
@@ -254,6 +267,32 @@ export default function App() {
     document.body.removeChild(link);
   };
 
+  // Handle Staff PIN Unlock
+  const handleUnlock = (remember: boolean) => {
+    try {
+      sessionStorage.setItem('tc_staff_pin_authorized', 'true');
+      if (remember) {
+        localStorage.setItem('tc_staff_pin_authorized', 'true');
+      } else {
+        localStorage.removeItem('tc_staff_pin_authorized');
+      }
+    } catch (e) {
+      console.error('Storage error saving auth state', e);
+    }
+    setIsAuthenticated(true);
+  };
+
+  // Handle Staff PIN Lock / Logout
+  const handleLock = () => {
+    try {
+      localStorage.removeItem('tc_staff_pin_authorized');
+      sessionStorage.removeItem('tc_staff_pin_authorized');
+    } catch (e) {
+      console.error('Storage error clearing auth state', e);
+    }
+    setIsAuthenticated(false);
+  };
+
   // If opened via a direct Guest Share URL or user clicked preview guest mode
   if (guestPortalTrip) {
     return (
@@ -272,6 +311,16 @@ export default function App() {
     );
   }
 
+  // Gate staff dashboard with PIN 2030 Lock Screen
+  if (!isAuthenticated) {
+    return (
+      <PinLockScreen
+        onUnlock={handleUnlock}
+        companyName={companySettings.companyName}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">
       {/* Navigation Header */}
@@ -286,6 +335,7 @@ export default function App() {
         selectedTrip={selectedTrip}
         totalTripsCount={trips.length}
         onExportCsv={handleExportCsv}
+        onLock={handleLock}
       />
 
       {/* Main Content Areas */}
