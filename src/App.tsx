@@ -184,14 +184,14 @@ export default function App() {
           onCustomTripClick={() => scrollToSection('trip-planner')}
         />
 
-        {/* 3. All Kerala Destinations Showcase */}
+        {/* 3. Dedicated Travel Services: Kerala Cab Services, Hotels & Houseboat Booking */}
+        <ServicesSection onPlanTripClick={() => scrollToSection('trip-planner')} />
+
+        {/* 4. All Kerala Destinations Showcase */}
         <DestinationsGrid
           onSelectDestination={handleSelectDestination}
           selectedDestinations={selectedDestinations}
         />
-
-        {/* 4. Standalone Services: Cab Services, Hotel & Houseboat Booking */}
-        <ServicesSection onPlanTripClick={() => scrollToSection('trip-planner')} />
 
         {/* 5. Interactive Instant Trip Planner & WhatsApp Quote */}
         <TripCalculator

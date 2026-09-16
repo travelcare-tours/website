@@ -61,13 +61,13 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateSection })
                 </a>
               </li>
               <li>
-                <a href="#destinations" onClick={(e) => handleLinkClick(e, 'destinations')} className="hover:text-brand-green-soft transition-colors">
-                  Kerala Destinations
+                <a href="#services" onClick={(e) => handleLinkClick(e, 'services')} className="hover:text-brand-green-soft transition-colors">
+                  Cab, Hotel &amp; Houseboat Services
                 </a>
               </li>
               <li>
-                <a href="#services" onClick={(e) => handleLinkClick(e, 'services')} className="hover:text-brand-green-soft transition-colors">
-                  Cab, Hotel &amp; Houseboat Services
+                <a href="#destinations" onClick={(e) => handleLinkClick(e, 'destinations')} className="hover:text-brand-green-soft transition-colors">
+                  Kerala Destinations
                 </a>
               </li>
               <li>

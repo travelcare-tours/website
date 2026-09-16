@@ -13,7 +13,7 @@ export const DestinationsGrid: React.FC<DestinationsGridProps> = ({
   selectedDestinations = [],
 }) => {
   return (
-    <section id="destinations" className="pt-8 pb-16 sm:pt-10 sm:pb-20 bg-white">
+    <section id="destinations" className="py-14 sm:py-18 bg-slate-50/70 border-t border-slate-200/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
         <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10 space-y-2">
@@ -28,8 +28,8 @@ export const DestinationsGrid: React.FC<DestinationsGridProps> = ({
           </p>
         </div>
 
-        {/* 8-Destination Grid: 2-column on mobile with compact height, 4-column on desktop */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+        {/* 8-Destination Grid: 2-column on mobile, 4-column on desktop with compact, sleek height */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
           {DESTINATIONS.map((dest) => {
             const isSelected = selectedDestinations.some(
               (d) => d.toLowerCase() === dest.name.toLowerCase()
@@ -39,7 +39,7 @@ export const DestinationsGrid: React.FC<DestinationsGridProps> = ({
               <div
                 key={dest.id}
                 onClick={() => onSelectDestination(dest.name)}
-                className={`group relative rounded-xl sm:rounded-2xl overflow-hidden aspect-[4/3.2] sm:aspect-[4/5] cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 ${
+                className={`group relative rounded-xl sm:rounded-2xl overflow-hidden aspect-[4/2.7] sm:aspect-[4/3] lg:aspect-[4/3] cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 ${
                   isSelected
                     ? 'border-2 border-brand-green shadow-lg scale-[1.01]'
                     : 'border border-slate-200 hover:border-brand-green/60'
@@ -56,7 +56,7 @@ export const DestinationsGrid: React.FC<DestinationsGridProps> = ({
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                 />
 
-                {/* Shading / Gradient Overlay: Deep blue-to-emerald gradient when selected */}
+                {/* Shading / Gradient Overlay */}
                 <div
                   className={`absolute inset-0 transition-all duration-300 ${
                     isSelected
@@ -66,9 +66,9 @@ export const DestinationsGrid: React.FC<DestinationsGridProps> = ({
                 />
 
                 {/* Top Badge: Selection Indicator */}
-                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10">
+                <div className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 z-10">
                   <span
-                    className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full transition-all ${
+                    className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 rounded-full transition-all ${
                       isSelected
                         ? 'bg-brand-green text-white shadow-md'
                         : 'bg-black/50 text-white backdrop-blur-md group-hover:bg-brand-green group-hover:text-white'
@@ -90,21 +90,21 @@ export const DestinationsGrid: React.FC<DestinationsGridProps> = ({
                   </span>
                 </div>
 
-                {/* Bottom Content with Larger, High-Contrast Typography */}
-                <div className="absolute bottom-0 inset-x-0 p-2.5 sm:p-5 text-white z-10 space-y-0.5 sm:space-y-1">
-                  <span className="text-[9px] sm:text-[11px] font-extrabold uppercase tracking-wider text-emerald-400 drop-shadow-xs block">
+                {/* Bottom Content with Proportional, Compact Typography */}
+                <div className="absolute bottom-0 inset-x-0 p-2.5 sm:p-3.5 lg:p-4 text-white z-10 space-y-0.5">
+                  <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 drop-shadow-xs block">
                     {dest.category}
                   </span>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base sm:text-2xl font-bold font-display tracking-tight text-white group-hover:text-emerald-300 transition-colors drop-shadow-sm">
+                  <div className="flex items-center justify-between gap-1">
+                    <h3 className="text-sm sm:text-lg lg:text-xl font-bold font-display tracking-tight text-white group-hover:text-emerald-300 transition-colors drop-shadow-sm truncate">
                       {dest.name}
                     </h3>
-                    <ArrowUpRight className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-white/70 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0" />
+                    <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0" />
                   </div>
-                  <p className="text-[10px] sm:text-xs text-slate-200 line-clamp-1 sm:line-clamp-2">
+                  <p className="text-[10px] sm:text-xs text-slate-200 line-clamp-1">
                     {dest.subtitle}
                   </p>
-                  <p className="text-[9px] sm:text-[11px] text-emerald-300 font-semibold pt-0.5 sm:pt-1 hidden sm:block">
+                  <p className="text-[9px] sm:text-[10px] text-emerald-300 font-semibold pt-0.5 hidden sm:block">
                     Best Season: {dest.bestTime}
                   </p>
                 </div>

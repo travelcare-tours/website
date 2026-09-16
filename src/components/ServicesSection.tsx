@@ -361,7 +361,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onPlanTripClic
   };
 
   return (
-    <section id="services" className="py-16 sm:py-20 bg-slate-50 border-t border-slate-200/80">
+    <section id="services" className="py-16 sm:py-20 bg-white border-t border-slate-200/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center space-y-3 mb-12 sm:mb-16">
