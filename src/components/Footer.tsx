@@ -271,7 +271,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateSection })
               onClick={() => {
                 if (onNavigate) onNavigate('/invoice');
               }}
-              title="Staff Portal (PIN 2030)"
+              title="Staff Portal"
               className="cursor-pointer hover:text-slate-400 transition-colors"
             >
               © {currentYear} Travel Care Tours Pvt Ltd.

@@ -4,6 +4,7 @@ import { TravelCareLogo } from './TravelCareLogo';
 import { 
   FileText, 
   PlusCircle, 
+  Plus,
   History, 
   Settings, 
   TrendingUp,
@@ -11,9 +12,7 @@ import {
   Menu,
   X,
   ChevronRight,
-  Car,
-  Phone,
-  Sparkles
+  Car
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -51,7 +50,7 @@ export const Navbar = ({
             onClick={() => handleNavClick('create')}
           >
             <div className="w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12 bg-white rounded-xl p-1 flex items-center justify-center shadow-lg shadow-blue-500/10 ring-1 ring-white/20 transition-transform group-hover:scale-105 shrink-0">
-              <TravelCareLogo size="xs" showText={false} customLogoUrl="TC Logo.png" className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10" />
+              <TravelCareLogo size="xs" showText={false} customLogoUrl="favicon.svg" className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10" />
             </div>
             <div>
               <div className="flex items-center space-x-1.5 sm:space-x-2">
@@ -153,7 +152,7 @@ export const Navbar = ({
               <button
                 id="nav-btn-lock"
                 onClick={onLock}
-                title="Lock Staff Portal (Requires PIN 2030 to unlock)"
+                title="Lock Staff Portal"
                 className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 lg:py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-rose-400 bg-slate-850 hover:bg-slate-800 border border-slate-700/80 transition-all cursor-pointer whitespace-nowrap"
               >
                 <Lock className="w-3.5 h-3.5" />
@@ -162,203 +161,171 @@ export const Navbar = ({
             )}
           </div>
 
-          {/* Mobile Right Controls: Prominent Action Button + Larger Hamburger Button */}
-          <div className="flex md:hidden items-center space-x-2.5">
-            {/* Quick action button on mobile */}
-            {currentView !== 'create' && (
+          {/* Mobile Right Controls: New Trip (+), Lock Icon, and Menu Hamburger */}
+          <div className="flex md:hidden items-center space-x-2">
+            {/* Direct + Icon for New Trip */}
+            <button
+              id="mobile-btn-new-trip"
+              onClick={() => handleNavClick('create')}
+              title="Create New Trip"
+              className={`p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
+                currentView === 'create'
+                  ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/25'
+                  : 'bg-blue-600/15 text-blue-400 hover:bg-blue-600/25 border-blue-500/30'
+              }`}
+              aria-label="New Trip"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+
+            {/* Direct Lock Icon in Header */}
+            {onLock && (
               <button
-                onClick={() => handleNavClick('create')}
-                className="inline-flex items-center space-x-1.5 px-3.5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                id="mobile-btn-lock"
+                onClick={onLock}
+                title="Lock Staff Portal"
+                className="p-2 sm:p-2.5 rounded-xl bg-slate-800 text-slate-400 hover:text-rose-400 hover:bg-slate-750 border border-slate-700/90 transition-all cursor-pointer flex items-center justify-center"
+                aria-label="Lock Portal"
               >
-                <PlusCircle className="w-4 h-4" />
-                <span>+ New Trip</span>
+                <Lock className="w-5 h-5" />
               </button>
             )}
 
-            {/* Large, comfortable Hamburger Toggle Button */}
+            {/* Compact Hamburger Toggle */}
             <button
               id="nav-mobile-menu-btn"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white border border-slate-700 focus:outline-none transition-all cursor-pointer flex items-center justify-center"
+              className="p-2 sm:p-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-750 border border-slate-700/90 focus:outline-none transition-all cursor-pointer flex items-center justify-center"
               aria-label="Toggle Navigation Menu"
             >
               {isMobileMenuOpen ? (
-                <X className="w-6 h-6 text-white" />
+                <X className="w-5 h-5 text-white" />
               ) : (
-                <Menu className="w-6 h-6 text-white" />
+                <Menu className="w-5 h-5 text-white" />
               )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Expanded, Spacious Mobile Menu Dropdown */}
+      {/* Modern, Streamlined Mobile Menu Dropdown (Cleaned of duplicates) */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-800 bg-slate-900/98 backdrop-blur-xl px-4 py-4 space-y-2.5 shadow-2xl animate-in slide-in-from-top-3 duration-200">
-          <div className="flex items-center justify-between px-2 pt-1 pb-1">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Navigation Menu
+        <div className="md:hidden border-t border-slate-800 bg-slate-900/98 backdrop-blur-xl px-4 py-3.5 space-y-2 shadow-2xl animate-in slide-in-from-top-2 duration-150">
+          <div className="flex items-center justify-between px-2 pt-0.5 pb-1">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Staff Portal Views
             </span>
-            <span className="text-[11px] text-slate-500 font-mono">
+            <span className="text-[10px] text-slate-500 font-mono">
               Travel Care Tours
             </span>
           </div>
 
-          {/* New Trip */}
+          {/* Trips History & Ledger */}
           <button
-            onClick={() => handleNavClick('create')}
-            className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold transition-all cursor-pointer ${
-              currentView === 'create'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-750'
+            onClick={() => handleNavClick('history')}
+            className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              currentView === 'history'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
             }`}
           >
             <div className="flex items-center space-x-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                currentView === 'create' ? 'bg-blue-700 text-white' : 'bg-slate-700 text-blue-400'
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                currentView === 'history' ? 'bg-blue-700 text-white' : 'bg-slate-700/80 text-emerald-400'
               }`}>
-                <PlusCircle className="w-5 h-5" />
+                <History className="w-4 h-4" />
               </div>
               <div className="text-left">
-                <div className="text-sm font-bold">New Trip Invoice</div>
-                <div className={`text-xs ${currentView === 'create' ? 'text-blue-100' : 'text-slate-400'}`}>
-                  Create new booking & calculate bill
+                <div className="flex items-center space-x-2">
+                  <span className="font-bold text-xs">Trip Records & Ledger</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-950 text-emerald-300 border border-slate-700 font-mono font-bold">
+                    {totalTripsCount}
+                  </span>
+                </div>
+                <div className={`text-[11px] ${currentView === 'history' ? 'text-blue-100' : 'text-slate-400'}`}>
+                  Balances, settlements & archive
                 </div>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 opacity-70" />
+            <ChevronRight className="w-4 h-4 opacity-60" />
           </button>
 
           {/* Selected Trip Invoice (if active) */}
           {selectedTrip && (
             <button
               onClick={() => handleNavClick('invoice')}
-              className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold transition-all cursor-pointer ${
+              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 currentView === 'invoice'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-750'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
               }`}
             >
               <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  currentView === 'invoice' ? 'bg-blue-700 text-white' : 'bg-slate-700 text-amber-400'
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  currentView === 'invoice' ? 'bg-blue-700 text-white' : 'bg-slate-700/80 text-amber-400'
                 }`}>
-                  <FileText className="w-5 h-5" />
+                  <FileText className="w-4 h-4" />
                 </div>
                 <div className="text-left">
-                  <div className="text-sm font-bold">Invoice ({selectedTrip.billNo})</div>
-                  <div className={`text-xs ${currentView === 'invoice' ? 'text-blue-100' : 'text-slate-400'}`}>
+                  <div className="font-bold text-xs">Active Invoice ({selectedTrip.billNo})</div>
+                  <div className={`text-[11px] ${currentView === 'invoice' ? 'text-blue-100' : 'text-slate-400'}`}>
                     {selectedTrip.customerName} • Preview & Share
                   </div>
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 opacity-70" />
+              <ChevronRight className="w-4 h-4 opacity-60" />
             </button>
           )}
-
-          {/* Trips History */}
-          <button
-            onClick={() => handleNavClick('history')}
-            className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold transition-all cursor-pointer ${
-              currentView === 'history'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-750'
-            }`}
-          >
-            <div className="flex items-center space-x-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                currentView === 'history' ? 'bg-blue-700 text-white' : 'bg-slate-700 text-emerald-400'
-              }`}>
-                <History className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-bold">Trip Records & Ledger</span>
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-950 text-emerald-300 border border-slate-700 font-mono font-bold">
-                    {totalTripsCount}
-                  </span>
-                </div>
-                <div className={`text-xs ${currentView === 'history' ? 'text-blue-100' : 'text-slate-400'}`}>
-                  All bills, settlements, balances & archive
-                </div>
-              </div>
-            </div>
-            <ChevronRight className="w-5 h-5 opacity-70" />
-          </button>
 
           {/* Fleet Insights */}
           <button
             onClick={() => handleNavClick('analytics')}
-            className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold transition-all cursor-pointer ${
+            className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               currentView === 'analytics'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-750'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
             }`}
           >
             <div className="flex items-center space-x-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                currentView === 'analytics' ? 'bg-blue-700 text-white' : 'bg-slate-700 text-purple-400'
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                currentView === 'analytics' ? 'bg-blue-700 text-white' : 'bg-slate-700/80 text-purple-400'
               }`}>
-                <TrendingUp className="w-5 h-5" />
+                <TrendingUp className="w-4 h-4" />
               </div>
               <div className="text-left">
-                <div className="text-sm font-bold">Fleet & Revenue Insights</div>
-                <div className={`text-xs ${currentView === 'analytics' ? 'text-blue-100' : 'text-slate-400'}`}>
-                  Driver allowances, vehicle KM and earnings
+                <div className="font-bold text-xs">Fleet & Revenue Insights</div>
+                <div className={`text-[11px] ${currentView === 'analytics' ? 'text-blue-100' : 'text-slate-400'}`}>
+                  Earnings, driver batta & KM analytics
                 </div>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 opacity-70" />
+            <ChevronRight className="w-4 h-4 opacity-60" />
           </button>
 
           {/* Settings */}
           <button
             onClick={() => handleNavClick('settings')}
-            className={`w-full flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold transition-all cursor-pointer ${
+            className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               currentView === 'settings'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-750'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
             }`}
           >
             <div className="flex items-center space-x-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                currentView === 'settings' ? 'bg-blue-700 text-white' : 'bg-slate-700 text-slate-300'
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                currentView === 'settings' ? 'bg-blue-700 text-white' : 'bg-slate-700/80 text-slate-300'
               }`}>
-                <Settings className="w-5 h-5" />
+                <Settings className="w-4 h-4" />
               </div>
               <div className="text-left">
-                <div className="text-sm font-bold">Company & Tariff Settings</div>
-                <div className={`text-xs ${currentView === 'settings' ? 'text-blue-100' : 'text-slate-400'}`}>
-                  Address, GST, UPI QR & Google Sheet sync
+                <div className="font-bold text-xs">Company & Tariff Settings</div>
+                <div className={`text-[11px] ${currentView === 'settings' ? 'text-blue-100' : 'text-slate-400'}`}>
+                  Address, GST, UPI & default tariffs
                 </div>
               </div>
             </div>
-            <ChevronRight className="w-5 h-5 opacity-70" />
+            <ChevronRight className="w-4 h-4 opacity-60" />
           </button>
-
-          {/* Lock Staff Portal (Mobile) */}
-          {onLock && (
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onLock();
-              }}
-              className="w-full flex items-center justify-between p-3.5 rounded-2xl text-sm font-bold text-rose-300 bg-rose-950/30 hover:bg-rose-950/50 border border-rose-800/40 transition-all cursor-pointer"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-rose-900/50 text-rose-400">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-bold text-rose-200">Lock Staff Portal</div>
-                  <div className="text-xs text-rose-400/80">
-                    Sign out (Requires PIN 2030 to unlock)
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 opacity-70" />
-            </button>
-          )}
         </div>
       )}
     </header>

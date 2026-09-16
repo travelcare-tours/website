@@ -245,96 +245,81 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
           </button>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-bold text-slate-900 text-sm">Invoice Document</span>
-              <span className="px-2 py-0.5 rounded font-mono text-xs font-bold bg-slate-900 text-white">
+              <span className="font-mono text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                 {trip.billNo}
-              </span>
-              <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded font-bold ${
-                isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
-              }`}>
-                {isPaid ? 'Paid in Full' : `Due: ${formatCurrency(trip.balanceAmount, currency)}`}
               </span>
             </div>
             <p className="text-xs text-slate-500">{trip.customerName} • {trip.tripRoute}</p>
           </div>
         </div>
 
-        {/* Right: Primary Share & Guest Actions */}
+        {/* Right: Primary Actions with Simple Color Codes */}
         <div className="flex items-center flex-wrap gap-2">
           
-          {/* ALL-IN-ONE SHARE MODAL (Live Web Link, WhatsApp with Link, PDF file, PNG Image, QR Code) */}
+          {/* SHARE BILL (Green / Primary Dispatch CTA) */}
           <button
             id="btn-share-hub"
             onClick={() => setShowShareModal(true)}
-            className="inline-flex items-center px-4 py-2 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
-            title="Open Share Hub (Live Link, WhatsApp, PDF, QR Code)"
+            className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs transition-colors cursor-pointer"
+            title="Share Bill via WhatsApp, Link, PDF or QR Code"
           >
             <Share2 className="w-3.5 h-3.5 mr-1.5" />
-            <span>Share Bill to Guest</span>
+            <span>Share Bill</span>
           </button>
 
-          {/* GUEST VIEW OPTION: Opens interactive Mobile/Desktop Guest Receipt Modal */}
-          <button
-            id="btn-guest-view"
-            onClick={() => setShowGuestModal(true)}
-            className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
-            title="Open clean digital guest invoice view"
-          >
-            <Smartphone className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
-            Guest View
-          </button>
-
-          {/* DOWNLOAD PDF */}
+          {/* DOWNLOAD PDF (Blue / Document Export) */}
           <button
             id="btn-download-pdf"
             disabled={isExportingPdf}
             onClick={handleDownloadPdf}
-            className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-colors cursor-pointer disabled:opacity-50"
             title="Download PDF to device"
           >
-            <Download className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
+            <Download className="w-3.5 h-3.5 mr-1.5" />
             {isExportingPdf ? 'Exporting...' : 'Download PDF'}
           </button>
 
-          {/* PRINT / VECTOR PDF */}
+          {/* GUEST VIEW (Indigo / Digital Preview) */}
           <button
-            id="btn-print-invoice"
-            onClick={handlePrint}
-            className="inline-flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 transition-colors cursor-pointer"
-            title="Print or Save as Vector PDF"
+            id="btn-guest-view"
+            onClick={() => setShowGuestModal(true)}
+            className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer"
+            title="Open clean digital guest invoice view"
           >
-            <Printer className="w-3.5 h-3.5 mr-1.5" />
-            Print
+            <Smartphone className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+            <span>Guest View</span>
           </button>
 
-          {/* EDIT TRIP */}
+          {/* EDIT TRIP (Amber / Modification) */}
           <button
             id="btn-edit-trip"
             onClick={() => onEditTrip(trip)}
-            className="inline-flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 transition-colors cursor-pointer"
+            className="inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer"
+            title="Edit trip details and recalculate"
           >
-            <Edit3 className="w-3.5 h-3.5 mr-1.5" />
-            Edit
+            <Edit3 className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
+            <span>Edit</span>
           </button>
 
-          {/* MORE OPTIONS: Preview in Tab, Copy Text */}
-          <div className="flex items-center gap-1.5 pl-1 border-l border-slate-200">
-            <button
-              onClick={handlePreviewPdfInNewTab}
-              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-              title="Preview PDF in New Tab"
-            >
-              <Eye className="w-3.5 h-3.5" />
-            </button>
-
-            <button
-              onClick={handleCopyText}
-              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-              title={copiedText ? "Copied!" : "Copy Text Summary"}
-            >
-              {copiedText ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-            </button>
-          </div>
+          {/* COPY TEXT SUMMARY (Slate / Quick Clipboard) */}
+          <button
+            id="btn-copy-summary"
+            onClick={handleCopyText}
+            className="inline-flex items-center px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 transition-colors cursor-pointer"
+            title={copiedText ? "Copied!" : "Copy Text Summary"}
+          >
+            {copiedText ? (
+              <>
+                <Check className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                <span className="text-emerald-700 font-bold">Copied</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+                <span>Copy Summary</span>
+              </>
+            )}
+          </button>
 
         </div>
       </div>

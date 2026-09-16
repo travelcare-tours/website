@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TripRecord, CompanySettings } from '../types';
-import { calculateTripTotals, calculateTripDuration, formatCurrency, formatNumber } from '../utils/calculations';
+import { calculateTripTotals, calculateTripDuration, formatCurrency, formatNumber, generateWhatsAppMessage } from '../utils/calculations';
 import { vehiclePresets, commonRoutes } from '../data/initialData';
 import { 
   Car, 
@@ -20,24 +20,63 @@ import {
   Phone,
   ShieldCheck,
   RefreshCw,
-  Moon
+  Moon,
+  Zap,
+  Navigation
 } from 'lucide-react';
 
 interface DriverTripFormProps {
   initialTrip?: TripRecord | null;
   onSaveTrip: (trip: TripRecord, navigateToInvoice?: boolean) => void;
   companySettings: CompanySettings;
-  existingTrips: TripRecord[];
+  existingTrips?: TripRecord[];
   nextBillNo: string;
 }
+
+// Popular Kerala holiday tour circuits
+const KERALA_TOUR_PRESETS = [
+  { name: 'Cochin ⇄ Munnar Hill Station', days: 3, estKm: 320, route: 'Cochin - Neriamangalam - Valara - Munnar' },
+  { name: 'Munnar ⇄ Thekkady (Periyar)', days: 2, estKm: 180, route: 'Munnar - Poopara - Anakkara - Thekkady' },
+  { name: 'Cochin ⇄ Alleppey Backwaters', days: 2, estKm: 160, route: 'Cochin - Mararikulam - Alleppey Punnamada' },
+  { name: 'Cochin City ⇄ Athirappilly Falls', days: 1, estKm: 150, route: 'Cochin - Chalakudy - Athirappilly - Vazhachal' },
+  { name: 'Cochin ⇄ Kovalam & Varkala', days: 4, estKm: 460, route: 'Cochin - Kollam - Varkala - Trivandrum - Kovalam' },
+  { name: 'Calicut ⇄ Wayanad Highlands', days: 3, estKm: 280, route: 'Calicut - Thamarassery Churam - Vythiri - Kalpetta' },
+  { name: '7-Day Kerala Classic Circuit', days: 7, estKm: 920, route: 'Cochin - Munnar - Thekkady - Alleppey - Cochin Airport' }
+];
 
 export const DriverTripForm: React.FC<DriverTripFormProps> = ({
   initialTrip,
   onSaveTrip,
   companySettings,
+  existingTrips = [],
   nextBillNo
 }) => {
   const todayStr = new Date().toISOString().split('T')[0];
+
+  // Smart Recent Memory extracted from existing trips
+  const recentCustomers = useMemo(() => {
+    const map = new Map<string, string>();
+    existingTrips.forEach(t => {
+      if (t.customerName && t.customerName.trim().length > 1 && !map.has(t.customerName.trim())) {
+        map.set(t.customerName.trim(), t.customerPhone || '');
+      }
+    });
+    return Array.from(map.entries()).map(([name, phone]) => ({ name, phone }));
+  }, [existingTrips]);
+
+  const recentVehicles = useMemo(() => {
+    const map = new Map<string, { type: string; driver: string; phone: string }>();
+    existingTrips.forEach(t => {
+      if (t.vehicleNumber && t.vehicleNumber.trim().length > 2 && !map.has(t.vehicleNumber.trim())) {
+        map.set(t.vehicleNumber.trim(), {
+          type: t.vehicleType || 'Sedan',
+          driver: t.driverName || '',
+          phone: t.driverPhone || ''
+        });
+      }
+    });
+    return Array.from(map.entries()).map(([number, data]) => ({ number, ...data }));
+  }, [existingTrips]);
 
   const [formData, setFormData] = useState<Partial<TripRecord>>({
     billNo: nextBillNo,
@@ -212,7 +251,61 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
     onSaveTrip(fullTrip, preview);
   };
 
-  const loadQuickSample = (sampleType: 'munnar' | 'couple') => {
+  const handleSaveAndWhatsApp = (e: React.FormEvent) => {
+    e.preventDefault();
+    const pDate = formData.pickupDate || formData.dateOfTrip || todayStr;
+    const pTime = formData.pickupTime || '08:00';
+    const dDate = formData.dropoffDate || pDate;
+    const dTime = formData.dropoffTime || '20:00';
+    const duration = calculateTripDuration(pDate, pTime, dDate, dTime);
+
+    const fullTrip: TripRecord = {
+      id: formData.id || `trip-${Date.now()}`,
+      timestamp: formData.timestamp || new Date().toLocaleString('en-US', { hour12: false }),
+      emailAddress: formData.emailAddress || companySettings.email,
+      dateOfTrip: pDate,
+      pickupDate: pDate,
+      pickupTime: pTime,
+      dropoffDate: dDate,
+      dropoffTime: dTime,
+      durationText: duration.durationText,
+      extraNightAdded: duration.extraNightAdded,
+      customerName: formData.customerName?.trim() || 'Valued Customer',
+      customerPhone: formData.customerPhone?.trim() || '',
+      numberOfDays: duration.days,
+      vehicleNumber: formData.vehicleNumber?.trim().toUpperCase() || 'KL39N1510',
+      vehicleType: formData.vehicleType || 'Sedan',
+      driverName: formData.driverName?.trim() || 'Driver',
+      driverPhone: formData.driverPhone?.trim() || '',
+      tripRoute: formData.tripRoute?.trim() || 'Local / Outstation Trip',
+      startingKm: Number(formData.startingKm) || 0,
+      closingKm: Number(formData.closingKm) || 0,
+      ratePerKm: Number(formData.ratePerKm) || 0,
+      includedKm: Number(formData.includedKm) || 0,
+      dailyPackageRate: Number(formData.dailyPackageRate) || 0,
+      driverBata: Number(formData.driverBata) || 0,
+      tollParkingPermit: Number(formData.tollParkingPermit) || 0,
+      otherCharges: Number(formData.otherCharges) || 0,
+      advanceReceived: Number(formData.advanceReceived) || 0,
+      paymentMode: (formData.paymentMode as any) || 'Cash',
+      remarks: formData.remarks?.trim() || '',
+      billNo: formData.billNo || nextBillNo,
+      adjustment: Number(formData.adjustment) || 0,
+      ...calculations,
+      documentMergeStatus: 'Generated in App'
+    };
+
+    onSaveTrip(fullTrip, true);
+
+    const msg = generateWhatsAppMessage(fullTrip, companySettings);
+    const cleanPhone = (fullTrip.customerPhone || '').replace(/[^0-9]/g, '');
+    const waUrl = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+  };
+
+  const loadQuickSample = (sampleType: 'munnar' | 'couple' | 'airport') => {
     if (sampleType === 'munnar') {
       const pDate = todayStr;
       const dDate = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0];
@@ -248,6 +341,42 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
         advanceReceived: 5000,
         paymentMode: 'UPI',
         remarks: 'Hill station family tour, good trip',
+        adjustment: 0,
+      });
+    } else if (sampleType === 'airport') {
+      const pDate = todayStr;
+      const duration = calculateTripDuration(pDate, '09:00', pDate, '18:00');
+
+      setFormData({
+        billNo: nextBillNo,
+        timestamp: new Date().toLocaleString('en-US', { hour12: false }),
+        emailAddress: companySettings.email,
+        dateOfTrip: pDate,
+        pickupDate: pDate,
+        pickupTime: '09:00',
+        dropoffDate: pDate,
+        dropoffTime: '18:00',
+        numberOfDays: 1,
+        durationText: '1 Day (Local / Airport)',
+        extraNightAdded: false,
+        customerName: 'Anoop & Family',
+        customerPhone: '+91 98470 11223',
+        vehicleNumber: 'KL41P5412',
+        vehicleType: 'Innova Crysta',
+        driverName: 'Sujith Kumar',
+        driverPhone: '+91 98470 54321',
+        tripRoute: 'Kochi Airport (COK) -> Fort Kochi Sightseeing -> Hotel Drop',
+        startingKm: 84200,
+        closingKm: 84330,
+        ratePerKm: 20,
+        includedKm: 100,
+        dailyPackageRate: 2600,
+        driverBata: 600,
+        tollParkingPermit: 250,
+        otherCharges: 0,
+        advanceReceived: 1000,
+        paymentMode: 'UPI',
+        remarks: 'Airport pickup & heritage transfer',
         adjustment: 0,
       });
     } else {
@@ -301,7 +430,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
             <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded bg-blue-50 text-blue-800 font-mono text-xs font-bold border border-blue-200">
               {formData.billNo || nextBillNo}
             </span>
-            <h1 className="text-base sm:text-lg font-bold text-slate-900">
+            <h1 style={{ fontFamily: 'DM Sans, sans-serif' }} className="text-base sm:text-lg font-bold text-slate-900">
               {initialTrip ? 'Edit Trip & Invoice' : 'Trip Entry Details'}
             </h1>
           </div>
@@ -329,6 +458,14 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
             <Sparkles className="w-3.5 h-3.5 mr-1 text-emerald-600" />
             3-Day Alleppey (Sedan)
           </button>
+          <button
+            type="button"
+            onClick={() => loadQuickSample('airport')}
+            className="inline-flex items-center px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-slate-50 text-slate-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 border border-slate-200 transition-colors cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 mr-1 text-purple-600" />
+            1-Day Airport (Innova)
+          </button>
         </div>
       </div>
 
@@ -341,25 +478,48 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
             {/* Step 1: Customer & Journey Timing */}
             <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 shadow-xs">
               <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center justify-between">
-                <span>1. Customer & Journey Timing (Auto-Duration)</span>
+                <span style={{ fontFamily: 'DM Sans, sans-serif' }}>1. Customer & Journey Timing (Auto-Duration)</span>
                 <span className="text-[11px] font-medium text-slate-400 normal-case">Dates & Schedule</span>
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                {/* Customer Name */}
+                {/* Customer Name with Smart Memory */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Customer Name *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Customer Name *
+                    </label>
+                    {recentCustomers.length > 0 && (
+                      <span className="text-[10px] text-blue-600 font-medium flex items-center">
+                        <Zap className="w-3 h-3 mr-0.5 text-blue-500" />
+                        {recentCustomers.length} saved
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     required
                     id="input-customer-name"
+                    list="customer-names-list"
                     placeholder="e.g. Sarah Henderson / Mr. & Mrs. Sharma"
                     value={formData.customerName || ''}
-                    onChange={(e) => handleChange('customerName', e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleChange('customerName', val);
+                      const match = recentCustomers.find(c => c.name.toLowerCase() === val.trim().toLowerCase());
+                      if (match && match.phone && !formData.customerPhone) {
+                        handleChange('customerPhone', match.phone);
+                      }
+                    }}
                     className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-medium"
                   />
+                  <datalist id="customer-names-list">
+                    {recentCustomers.map((c, idx) => (
+                      <option key={idx} value={c.name}>
+                        {c.phone ? `Phone: ${c.phone}` : ''}
+                      </option>
+                    ))}
+                  </datalist>
                 </div>
 
                 {/* Customer Phone / WhatsApp */}
@@ -491,31 +651,50 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                   placeholder="e.g. Munnar - Thekkady - Alleppey - Kochi"
                   value={formData.tripRoute || ''}
                   onChange={(e) => handleChange('tripRoute', e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-medium mb-2"
+                  className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-medium mb-2.5"
                 />
 
-                {/* Route quick chips */}
-                <div className="flex flex-wrap gap-1.5">
-                  {commonRoutes.slice(0, 4).map((route, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleChange('tripRoute', route)}
-                      className="text-[11px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-colors cursor-pointer border border-slate-200"
-                    >
-                      + {route.length > 28 ? route.slice(0, 26) + '...' : route}
-                    </button>
-                  ))}
+                {/* Popular Kerala Tour Presets */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Quick Circuit Presets:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {KERALA_TOUR_PRESETS.map((preset, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          handleChange('tripRoute', preset.route);
+                          const start = formData.startingKm || 0;
+                          handleChange('closingKm', start + preset.estKm);
+                        }}
+                        className="text-[11px] px-2.5 py-1 rounded-md bg-blue-50/70 hover:bg-blue-100 text-blue-800 font-medium transition-colors cursor-pointer border border-blue-200/60 flex items-center gap-1"
+                        title={`Apply ${preset.route} (~${preset.estKm} KM)`}
+                      >
+                        <Navigation className="w-3 h-3 text-blue-600" />
+                        <span>{preset.name}</span>
+                        <span className="text-[10px] text-blue-600 font-mono font-semibold">({preset.estKm}km)</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Step 2: Vehicle & Driver Details */}
             <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-sm">
-              <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center justify-between">
-                <span>2. Vehicle & Driver Profile</span>
-                <span className="text-[11px] font-medium text-slate-400 normal-case">Tariff Presets</span>
-              </h2>
+              <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-2">
+                <h2 style={{ fontFamily: 'DM Sans, sans-serif' }} className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  2. Vehicle & Driver Profile
+                </h2>
+                {recentVehicles.length > 0 && (
+                  <span className="text-[10px] text-blue-600 font-medium flex items-center">
+                    <Zap className="w-3 h-3 mr-0.5 text-blue-500" />
+                    {recentVehicles.length} fleet vehicles
+                  </span>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Vehicle Type */}
@@ -537,7 +716,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                   </select>
                 </div>
 
-                {/* Vehicle Number */}
+                {/* Vehicle Number with Fleet Memory */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                     Vehicle Reg. Number *
@@ -546,11 +725,28 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                     type="text"
                     required
                     id="input-vehicle-number"
+                    list="vehicle-numbers-list"
                     placeholder="e.g. KL39N1510"
                     value={formData.vehicleNumber || ''}
-                    onChange={(e) => handleChange('vehicleNumber', e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono font-bold tracking-wider"
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      handleChange('vehicleNumber', val);
+                      const match = recentVehicles.find(v => v.number.toLowerCase() === val.trim().toLowerCase());
+                      if (match) {
+                        if (match.type) handleVehicleTypeChange(match.type);
+                        if (match.driver && !formData.driverName) handleChange('driverName', match.driver);
+                        if (match.phone && !formData.driverPhone) handleChange('driverPhone', match.phone);
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono font-bold tracking-wider uppercase"
                   />
+                  <datalist id="vehicle-numbers-list">
+                    {recentVehicles.map((v, idx) => (
+                      <option key={idx} value={v.number}>
+                        {v.type} • {v.driver}
+                      </option>
+                    ))}
+                  </datalist>
                 </div>
 
                 {/* Driver Name */}
@@ -562,7 +758,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                     type="text"
                     required
                     id="input-driver-name"
-                    placeholder="e.g. Marcus Rodriguez / Suresh Kumar"
+                    placeholder="e.g. Suresh Kumar"
                     value={formData.driverName || ''}
                     onChange={(e) => handleChange('driverName', e.target.value)}
                     className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-medium"
@@ -586,10 +782,10 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
               </div>
             </div>
 
-            {/* Step 3: Odometer & Kilometers (Distance Math) */}
+            {/* Step 3: Distance & Odometer Breakdown */}
             <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-sm">
               <div className="flex items-center justify-between pb-2 mb-4 border-b border-slate-100">
-                <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                <h2 style={{ fontFamily: 'DM Sans, sans-serif' }} className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                   3. Distance & Odometer Breakdown
                 </h2>
 
@@ -621,9 +817,28 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
 
                 {/* Closing KM */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Closing KM *
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      Closing KM *
+                    </label>
+                    {/* Quick Add KM shortcuts */}
+                    <div className="flex items-center space-x-1">
+                      {[50, 100, 250].map(addKm => (
+                        <button
+                          key={addKm}
+                          type="button"
+                          onClick={() => {
+                            const start = formData.startingKm || 0;
+                            handleChange('closingKm', (formData.closingKm && formData.closingKm > start ? formData.closingKm : start) + addKm);
+                          }}
+                          className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 border border-slate-200 transition-colors cursor-pointer"
+                          title={`Add +${addKm} KM to starting odometer`}
+                        >
+                          +{addKm}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <input
                     type="number"
                     min="0"
@@ -691,7 +906,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
 
             {/* Step 4: Fare, Allowances & Other Charges */}
             <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-sm">
-              <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
+              <h2 style={{ fontFamily: 'DM Sans, sans-serif' }} className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2">
                 4. Tariffs, Allowances & Pass-Through Costs
               </h2>
 
@@ -710,9 +925,6 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                     onChange={(e) => handleChange('dailyPackageRate', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono font-medium"
                   />
-                  <span className="text-[11px] text-slate-500 mt-1 block">
-                    Hire: {durationInfo.days}d × {currency}{formData.dailyPackageRate || 0} = <b>{formatCurrency(calculations.vehicleHire, currency)}</b>
-                  </span>
                 </div>
 
                 {/* Driver Bata */}
@@ -836,7 +1048,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
             <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm sticky top-20">
               <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <h3 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
-                  <span className="uppercase tracking-wider text-xs">Summary Breakdown</span>
+                  <span style={{ fontFamily: 'DM Sans, sans-serif' }} className="uppercase tracking-wider text-xs">Summary Breakdown</span>
                   <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono font-bold border border-slate-200">
                     {formData.billNo || nextBillNo}
                   </span>
@@ -946,12 +1158,22 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
 
                 <button
                   type="button"
+                  id="btn-save-and-whatsapp"
+                  onClick={handleSaveAndWhatsApp}
+                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center justify-center space-x-2 transition-colors cursor-pointer shadow-sm shadow-emerald-500/10"
+                >
+                  <Share2 className="w-4 h-4" />
+                  <span>Save & Share via WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
                   id="btn-save-trip-quick"
                   onClick={(e) => handleSubmit(e, false)}
-                  className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-xs flex items-center justify-center space-x-2 transition-colors cursor-pointer"
+                  className="w-full py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold text-xs flex items-center justify-center space-x-2 transition-colors cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Save Record (Without Preview)</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Save Record Only (No Preview)</span>
                 </button>
               </div>
 

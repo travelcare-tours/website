@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TripRecord, CompanySettings } from '../types';
 import { formatCurrency, formatNumber, convertTripsToCsv, generateWhatsAppMessage } from '../utils/calculations';
 import { PaymentSettlementModal } from './PaymentSettlementModal';
@@ -31,7 +31,9 @@ import {
   AlertCircle,
   HelpCircle,
   Database,
-  Smartphone
+  Smartphone,
+  MoreVertical,
+  ChevronRight
 } from 'lucide-react';
 
 interface TripHistoryProps {
@@ -75,6 +77,23 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [guestReceiptTrip, setGuestReceiptTrip] = useState<TripRecord | null>(null);
   const [shareTripModal, setShareTripModal] = useState<TripRecord | null>(null);
+  const [actionMenuTripId, setActionMenuTripId] = useState<string | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close action dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+        setActionMenuTripId(null);
+      }
+    };
+    if (actionMenuTripId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [actionMenuTripId]);
 
   const currency = companySettings.currencySymbol || '₹';
 
@@ -140,63 +159,65 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       
       {/* Top Stats Overview & Balanced Ledger */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Trips & Mileage */}
-        <div className="bg-white p-3 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
           <div className="flex justify-between items-start">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Fleet Volume</span>
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-              <Car className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">Fleet Volume</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <Car className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-base sm:text-2xl font-bold text-slate-900 mt-1 sm:mt-2 font-mono">{trips.length} Trips</div>
-          <span className="text-[10px] sm:text-xs text-slate-500 mt-0.5 block truncate">{formatNumber(totalKmDriven)} KM Fleet</span>
+          <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-2 font-mono tracking-tight">{trips.length} <span className="text-sm font-sans font-medium text-slate-500">Trips</span></div>
+          <span className="text-[11px] text-slate-500 mt-1 block truncate font-mono">{formatNumber(totalKmDriven)} KM logged</span>
         </div>
 
         {/* Total Revenue & Advance */}
-        <div className="bg-white p-3 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-xs hover:border-slate-300 transition-colors">
           <div className="flex justify-between items-start">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Gross Billed</span>
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
-              <IndianRupee className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">Gross Billed</span>
+            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+              <IndianRupee className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-base sm:text-2xl font-bold text-slate-900 mt-1 sm:mt-2 font-mono">
+          <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-2 font-mono tracking-tight">
             {formatCurrency(totalRevenue, currency)}
           </div>
-          <span className="text-[10px] sm:text-xs text-slate-500 mt-0.5 block font-medium truncate">
-            Adv: {formatCurrency(totalAdvance, currency)}
+          <span className="text-[11px] text-slate-500 mt-1 block font-mono truncate">
+            Adv Received: {formatCurrency(totalAdvance, currency)}
           </span>
         </div>
 
         {/* Closed / Settled Collected */}
-        <div className="bg-white p-3 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-xs hover:border-emerald-200 transition-colors">
           <div className="flex justify-between items-start">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Collected</span>
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">Total Collected</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-base sm:text-2xl font-bold text-emerald-800 mt-1 sm:mt-2 font-mono">
+          <div className="text-xl sm:text-2xl font-bold text-emerald-800 mt-2 font-mono tracking-tight">
             {formatCurrency(totalAdvance + totalSettlements, currency)}
           </div>
-          <span className="text-[10px] sm:text-xs text-emerald-700 mt-0.5 block font-medium truncate">
-            Settled: {formatCurrency(totalSettlements, currency)}
+          <span className="text-[11px] text-emerald-700 mt-1 block font-mono truncate">
+            Post-Trip Settled: {formatCurrency(totalSettlements, currency)}
           </span>
         </div>
 
         {/* Outstanding Balance */}
-        <div className="bg-white p-3 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
+        <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200/80 shadow-xs hover:border-amber-200 transition-colors">
           <div className="flex justify-between items-start">
-            <span className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">Outstanding</span>
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">Outstanding Due</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-base sm:text-2xl font-bold text-amber-900 mt-1 sm:mt-2 font-mono">
+          <div className="text-xl sm:text-2xl font-bold text-amber-900 mt-2 font-mono tracking-tight">
             {formatCurrency(totalPending, currency)}
           </div>
-          <span className="text-[10px] sm:text-xs text-amber-700 mt-0.5 block truncate">Balance due</span>
+          <span className="text-[11px] text-amber-700 mt-1 block font-medium truncate">
+            {trips.filter(t => (t.balanceAmount || 0) > 0 && t.status !== 'closed').length} trips pending payment
+          </span>
         </div>
       </div>
 
@@ -297,11 +318,209 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
         </div>
       </div>
 
-      {/* Trips Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* Trips Display: Responsive Mobile Cards (md:hidden) & Polished Desktop Table (hidden md:block) */}
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden">
+        
+        {/* ===================== 1. MOBILE CARD VIEW (Responsive & Touch-Friendly) ===================== */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {filteredTrips.length === 0 ? (
+            <div className="py-12 px-4 text-center text-slate-400">
+              {activeViewTab === 'active' ? (
+                <>
+                  <Car className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="font-medium text-xs">No trip records found matching your filters</p>
+                  <button
+                    onClick={onNewTrip}
+                    className="mt-3 inline-flex items-center text-xs font-bold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    + Create a new trip record
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Archive className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="font-medium text-xs">The Archive is currently empty.</p>
+                </>
+              )}
+            </div>
+          ) : (
+            filteredTrips.map((trip) => {
+              const isClosed = trip.status === 'closed' || trip.balanceAmount <= 0;
+              const isMenuOpen = actionMenuTripId === trip.id;
+
+              return (
+                <div key={trip.id} className="p-4 space-y-3 hover:bg-slate-50/60 transition-colors">
+                  {/* Top Row: Bill No & Status Pill Badge */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-900 border border-slate-200 text-xs font-mono font-bold">
+                        {trip.billNo}
+                      </span>
+                      <span className="text-xs text-slate-500 font-medium flex items-center">
+                        <Calendar className="w-3 h-3 mr-1 text-slate-400" />
+                        {trip.dateOfTrip}
+                      </span>
+                    </div>
+
+                    {/* Status Pill Badge with Perfect Border Radius */}
+                    {isClosed ? (
+                      <span className="inline-flex items-center text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" />
+                        Settled
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center text-[11px] font-bold text-amber-900 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-300">
+                        <Clock className="w-3 h-3 mr-1 text-amber-600" />
+                        Due: {formatCurrency(trip.balanceAmount, currency)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Customer & Route Details */}
+                  <div className="space-y-1">
+                    <div className="text-sm font-bold text-slate-900">
+                      {trip.customerName}
+                    </div>
+                    <div className="text-xs font-medium text-slate-700">
+                      {trip.tripRoute || 'Cab Tour'}
+                    </div>
+                    <div className="text-[11px] text-slate-500 flex items-center justify-between">
+                      <span>{trip.vehicleNumber} • {trip.vehicleType}</span>
+                      <span className="font-mono font-bold text-slate-800">{formatNumber(trip.totalKm)} KM</span>
+                    </div>
+                  </div>
+
+                  {/* Financial Row */}
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span className="text-slate-500 font-medium">Total Bill:</span>
+                    <span className="font-mono font-bold text-slate-900 text-sm">
+                      {formatCurrency(trip.totalAmount, currency)}
+                    </span>
+                  </div>
+
+                  {/* Action Bar (Streamlined) */}
+                  <div className="pt-1 flex items-center justify-between gap-2 relative">
+                    <div className="flex items-center gap-2 flex-1">
+                      <button
+                        onClick={() => onSelectTrip(trip)}
+                        className="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span>Invoice</span>
+                      </button>
+
+                      {activeViewTab === 'active' && !isClosed && (
+                        <button
+                          onClick={() => setSettlementTrip(trip)}
+                          className="py-1.5 px-3 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <BadgeCheck className="w-3.5 h-3.5" />
+                          <span>Settle</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Secondary Actions Dropdown Button */}
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActionMenuTripId(isMenuOpen ? null : trip.id);
+                        }}
+                        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+                        aria-label="More actions"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {isMenuOpen && (
+                        <div 
+                          ref={actionMenuRef}
+                          className="absolute right-0 bottom-full mb-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
+                        >
+                          {activeViewTab === 'active' ? (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setActionMenuTripId(null);
+                                  setGuestReceiptTrip(trip);
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                              >
+                                <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+                                <span>Guest View (Mobile)</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActionMenuTripId(null);
+                                  setShareTripModal(trip);
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                              >
+                                <Share2 className="w-3.5 h-3.5 text-blue-500" />
+                                <span>Share & WhatsApp</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActionMenuTripId(null);
+                                  onEditTrip(trip);
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                              >
+                                <Edit className="w-3.5 h-3.5 text-slate-600" />
+                                <span>Edit Trip Details</span>
+                              </button>
+                              <div className="my-1 border-t border-slate-100"></div>
+                              <button
+                                onClick={() => {
+                                  setActionMenuTripId(null);
+                                  onDeleteTrip(trip.id);
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Move to Archive</span>
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setActionMenuTripId(null);
+                                  onRestoreTrip(trip.id);
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs font-medium text-blue-700 hover:bg-blue-50 flex items-center gap-2 cursor-pointer"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                <span>Restore Trip</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActionMenuTripId(null);
+                                  onPermanentDeleteTrip(trip.id);
+                                }}
+                                className="w-full px-3 py-2 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Delete Permanently</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* ===================== 2. DESKTOP TABLE VIEW (Decluttered & Clean) ===================== */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+            <thead className="bg-slate-50/80 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="py-3 px-4">Bill No</th>
                 <th className="py-3 px-4">Date & Customer</th>
@@ -341,36 +560,33 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
               ) : (
                 filteredTrips.map((trip) => {
                   const isClosed = trip.status === 'closed' || trip.balanceAmount <= 0;
+                  const isMenuOpen = actionMenuTripId === trip.id;
+
                   return (
-                    <tr key={trip.id} className="hover:bg-slate-50/70 transition-colors">
+                    <tr key={trip.id} className="hover:bg-slate-50/80 transition-colors group">
                       
                       {/* Bill No */}
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
-                        <div className="flex items-center space-x-1.5">
-                          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 text-xs">
-                            {trip.billNo}
-                          </span>
-                        </div>
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-200 transition-colors">
+                          {trip.billNo}
+                        </span>
                       </td>
 
-                      {/* Date & Customer */}
+                      {/* Date & Customer (Phone number removed as requested for aesthetics) */}
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-slate-900 text-xs">{trip.customerName}</div>
                         <div className="text-slate-500 text-[11px] flex items-center mt-0.5">
                           <Calendar className="w-3 h-3 mr-1 text-slate-400" />
                           <span>{trip.dateOfTrip}</span>
-                          {trip.customerPhone && (
-                            <span className="ml-2 text-slate-400 font-mono">{trip.customerPhone}</span>
-                          )}
                         </div>
                       </td>
 
                       {/* Route & Duration */}
                       <td className="py-3.5 px-4 max-w-xs">
-                        <div className="font-medium text-slate-800 truncate" title={trip.tripRoute}>
+                        <div className="font-semibold text-slate-800 truncate" title={trip.tripRoute}>
                           {trip.tripRoute}
                         </div>
-                        <div className="text-slate-500 text-[11px]">
+                        <div className="text-slate-500 text-[11px] mt-0.5">
                           {trip.durationText || `${trip.numberOfDays} Day${trip.numberOfDays > 1 ? 's' : ''}`} • {trip.remarks || 'Holiday / Cab Tour'}
                         </div>
                       </td>
@@ -378,20 +594,17 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
                       {/* Vehicle & Driver */}
                       <td className="py-3.5 px-4">
                         <div className="font-mono font-bold text-slate-900">{trip.vehicleNumber}</div>
-                        <div className="text-slate-500 text-[11px]">
+                        <div className="text-slate-500 text-[11px] mt-0.5">
                           {trip.driverName} • <span className="text-slate-700 font-medium">{trip.vehicleType}</span>
                         </div>
                       </td>
 
-                      {/* Distance */}
+                      {/* Distance (Odometer readings removed as requested for clean aesthetics) */}
                       <td className="py-3.5 px-4 text-center font-mono">
                         <div className="font-bold text-slate-900">{formatNumber(trip.totalKm)} KM</div>
-                        <div className="text-[10px] text-slate-400">
-                          {formatNumber(trip.startingKm)} → {formatNumber(trip.closingKm)}
-                        </div>
                       </td>
 
-                      {/* Total & Ledger Balance / Settle Button */}
+                      {/* Total & Ledger Balance with Perfect Border Radius */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="font-mono font-bold text-slate-900">
                           {formatCurrency(trip.totalAmount, currency)}
@@ -399,33 +612,22 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
                         
                         <div className="mt-1 flex flex-col items-end gap-1">
                           {isClosed ? (
-                            <div className="inline-flex items-center text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            <span className="inline-flex items-center text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
                               <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" />
-                              <span>Closed</span>
+                              <span>Settled</span>
                               {trip.settlementDate && (
                                 <span className="ml-1 text-emerald-700 font-normal">
                                   ({trip.settlementDate})
                                 </span>
                               )}
-                            </div>
+                            </span>
                           ) : (
-                            <div className="flex items-center space-x-1.5">
-                              <span className="inline-flex items-center text-[10px] font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                                Due: {formatCurrency(trip.balanceAmount, currency)}
-                              </span>
-                              {activeViewTab === 'active' && (
-                                <button
-                                  onClick={() => setSettlementTrip(trip)}
-                                  className="px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
-                                  title="Record guest remaining payment and balance ledger"
-                                >
-                                  Settle
-                                </button>
-                              )}
-                            </div>
+                            <span className="inline-flex items-center text-[11px] font-bold text-amber-900 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-300">
+                              <Clock className="w-3 h-3 mr-1 text-amber-600" />
+                              <span>Due: {formatCurrency(trip.balanceAmount, currency)}</span>
+                            </span>
                           )}
 
-                          {/* Detail summary of settlement */}
                           {trip.settlementAmount && trip.settlementAmount > 0 && (
                             <span className="text-[10px] text-slate-500 font-mono">
                               Paid {formatCurrency(trip.settlementAmount, currency)} via {trip.settlementPaymentMode || 'UPI'}
@@ -434,64 +636,102 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
                         </div>
                       </td>
 
-                      {/* Action Buttons */}
+                      {/* Action Buttons: Decluttered & Elegant */}
                       <td className="py-3.5 px-4 text-right">
                         {activeViewTab === 'active' ? (
-                          <div className="flex items-center justify-end space-x-1.5">
-                            <button
-                              onClick={() => setGuestReceiptTrip(trip)}
-                              title="Guest View (Mobile Bill & Instant Pay)"
-                              className="p-1.5 rounded-lg text-blue-700 bg-blue-50/60 hover:bg-blue-100 hover:text-blue-900 border border-blue-200/60 transition-colors cursor-pointer"
-                            >
-                              <Smartphone className="w-4 h-4" />
-                            </button>
-
+                          <div className="flex items-center justify-end space-x-1.5 relative">
+                            {/* Primary Invoice View */}
                             <button
                               onClick={() => onSelectTrip(trip)}
                               title="View & Download Invoice"
-                              className="p-1.5 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-transparent hover:border-slate-200 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 transition-colors cursor-pointer"
                             >
-                              <FileText className="w-4 h-4 text-slate-800" />
+                              <FileText className="w-3.5 h-3.5" />
+                              <span>Invoice</span>
                             </button>
 
-                            <button
-                              onClick={() => setSettlementTrip(trip)}
-                              title="Payment Ledger / Settlement"
-                              className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
-                            >
-                              <BadgeCheck className="w-4 h-4" />
-                            </button>
+                            {/* Settle Button (Displayed only once, if payment is pending) */}
+                            {!isClosed && (
+                              <button
+                                onClick={() => setSettlementTrip(trip)}
+                                title="Record remaining payment"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50/90 hover:bg-emerald-100 border border-emerald-200/80 transition-colors cursor-pointer"
+                              >
+                                <BadgeCheck className="w-3.5 h-3.5" />
+                                <span>Settle</span>
+                              </button>
+                            )}
 
-                            <button
-                              onClick={() => setShareTripModal(trip)}
-                              title="Share Invoice (Live Link, WhatsApp, PDF, QR)"
-                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
-                            >
-                              <Share2 className="w-4 h-4" />
-                            </button>
+                            {/* Dropdown More Menu Button */}
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActionMenuTripId(isMenuOpen ? null : trip.id);
+                                }}
+                                title="More options"
+                                className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
+                              >
+                                <MoreVertical className="w-3.5 h-3.5" />
+                              </button>
 
-                            <button
-                              onClick={() => onEditTrip(trip)}
-                              title="Edit Trip Details"
-                              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors cursor-pointer"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-
-                            <button
-                              onClick={() => onDeleteTrip(trip.id)}
-                              title="Move to Archive"
-                              className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                              {/* Dropdown Card */}
+                              {isMenuOpen && (
+                                <div 
+                                  ref={actionMenuRef}
+                                  className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-30 text-left animate-in fade-in zoom-in-95 duration-100"
+                                >
+                                  <button
+                                    onClick={() => {
+                                      setActionMenuTripId(null);
+                                      setGuestReceiptTrip(trip);
+                                    }}
+                                    className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+                                    <span>Guest Mobile View</span>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setActionMenuTripId(null);
+                                      setShareTripModal(trip);
+                                    }}
+                                    className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Share2 className="w-3.5 h-3.5 text-blue-500" />
+                                    <span>Share & WhatsApp</span>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setActionMenuTripId(null);
+                                      onEditTrip(trip);
+                                    }}
+                                    className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Edit className="w-3.5 h-3.5 text-slate-600" />
+                                    <span>Edit Trip Details</span>
+                                  </button>
+                                  <div className="my-1 border-t border-slate-100"></div>
+                                  <button
+                                    onClick={() => {
+                                      setActionMenuTripId(null);
+                                      onDeleteTrip(trip.id);
+                                    }}
+                                    className="w-full px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Move to Archive</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ) : (
                           <div className="flex items-center justify-end space-x-1.5">
                             <button
                               onClick={() => onSelectTrip(trip)}
                               title="View Archived Invoice"
-                              className="p-1.5 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-transparent hover:border-slate-200 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 transition-colors cursor-pointer"
                             >
                               <FileText className="w-4 h-4 text-slate-800" />
                             </button>

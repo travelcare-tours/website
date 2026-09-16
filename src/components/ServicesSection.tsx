@@ -370,7 +370,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onPlanTripClic
             <span>Dedicated Travel Services</span>
           </div>
 
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-brand-navy tracking-tight font-serif">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-brand-navy tracking-tight">
             Cab Services, Hotels &amp; Houseboat Bookings
           </h2>
 
