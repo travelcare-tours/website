@@ -2,13 +2,14 @@ import React, { useRef, useState } from 'react';
 import { TripRecord, CompanySettings } from '../types';
 import { formatCurrency, formatNumber, generateUpiPaymentUrl, generateWhatsAppMessage } from '../utils/calculations';
 import { TravelCareLogo } from './TravelCareLogo';
-import html2canvas from 'html2canvas-pro';
-import jsPDF from 'jspdf';
+import { generateInvoicePdf } from '../utils/pdfGenerator';
 import confetti from 'canvas-confetti';
 import { 
   CheckCircle2, 
   Clock, 
   Phone, 
+  Mail,
+  Globe,
   MapPin, 
   Download, 
   Printer, 
@@ -42,32 +43,10 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
   const upiUrl = generateUpiPaymentUrl(companySettings, trip);
 
   const handleDownloadPdf = async () => {
-    if (!receiptRef.current) return;
     try {
       setIsExportingPdf(true);
-      const element = receiptRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-      });
-
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true,
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-      const renderHeight = Math.min(imgHeight, pdfHeight);
-
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, renderHeight, undefined, 'FAST');
-      pdf.save(`Invoice_${trip.billNo}.pdf`);
+      const { pdf, filename } = await generateInvoicePdf(trip, companySettings);
+      pdf.save(filename);
 
       confetti({
         particleCount: 40,
@@ -100,27 +79,55 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
         >
           {/* Header Brand */}
           <div className="text-center pb-4 border-b border-slate-200">
-            <div className="flex justify-center mb-2">
+            <div className="flex justify-center mb-3">
               <TravelCareLogo
-                size="md"
+                size="lg"
                 showText={true}
                 customLogoUrl={companySettings.logoUrl}
-                className="h-12 sm:h-14 w-auto max-w-[260px]"
+                className="h-16 sm:h-20 md:h-24 w-auto max-w-[320px] sm:max-w-[400px] object-contain"
               />
             </div>
-            <h1 className="text-base sm:text-lg font-bold text-slate-900">{companySettings.companyName}</h1>
-            <p className="text-xs text-slate-500 font-medium">{companySettings.tagline}</p>
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-600 mt-2 font-medium">
-              <a href={`tel:${companySettings.phone}`} className="hover:text-blue-600 inline-flex items-center">
-                <Phone className="w-3.5 h-3.5 mr-1 text-slate-400" />
-                {companySettings.phone}
+            <h1 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 tracking-tight">{companySettings.companyName}</h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">{companySettings.tagline}</p>
+            
+            {/* Contact Channels: Phone, Email, Website - cleanly spaced without trailing dots */}
+            <div className="flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-5 gap-y-1.5 text-xs text-slate-600 mt-2.5 font-medium">
+              <a 
+                href={`tel:${companySettings.phone}`} 
+                className="hover:text-blue-600 inline-flex items-center transition-colors"
+                title={`Call ${companySettings.phone}`}
+              >
+                <Phone className="w-3.5 h-3.5 mr-1.5 text-slate-400 shrink-0" />
+                <span>{companySettings.phone}</span>
               </a>
-              <span>•</span>
+              <a 
+                href={`mailto:${companySettings.email || 'travelcare598@gmail.com'}`} 
+                className="hover:text-blue-600 inline-flex items-center transition-colors"
+                title={`Email ${companySettings.email || 'travelcare598@gmail.com'}`}
+              >
+                <Mail className="w-3.5 h-3.5 mr-1.5 text-slate-400 shrink-0" />
+                <span>{companySettings.email || 'travelcare598@gmail.com'}</span>
+              </a>
+              <a 
+                href={companySettings.website ? (companySettings.website.startsWith('http') ? companySettings.website : `https://${companySettings.website}`) : 'https://travelcaretours.in'} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-blue-600 inline-flex items-center transition-colors"
+                title="Official Website"
+              >
+                <Globe className="w-3.5 h-3.5 mr-1.5 text-slate-400 shrink-0" />
+                <span>{companySettings.website ? companySettings.website.replace(/^https?:\/\//, '') : 'travelcaretours.in'}</span>
+              </a>
+            </div>
+
+            {/* Address */}
+            <div className="flex items-center justify-center text-xs text-slate-500 mt-1.5 font-normal px-2 text-center">
               <span className="inline-flex items-center">
-                <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                <MapPin className="w-3.5 h-3.5 mr-1 text-slate-400 shrink-0" />
                 {companySettings.address}
               </span>
             </div>
+
             {companySettings.gstNo && (
               <p className="text-[11px] text-slate-400 font-mono mt-1">GSTIN: {companySettings.gstNo}</p>
             )}
@@ -189,23 +196,37 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
 
           {/* Guest & Driver Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Billed To (Guest)</span>
-              <p className="font-bold text-slate-900 text-sm">{trip.customerName}</p>
+            <div className="p-3 sm:p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Billed To (Guest)</span>
+                <p className="font-bold text-slate-900 text-sm truncate">{trip.customerName}</p>
+                {trip.customerPhone ? (
+                  <p className="text-slate-600 mt-0.5 flex items-center font-medium">
+                    <Phone className="w-3 h-3 mr-1 text-slate-400 shrink-0" />
+                    <span>{trip.customerPhone}</span>
+                  </p>
+                ) : (
+                  <p className="text-slate-400 text-xs italic mt-0.5">Guest passenger</p>
+                )}
+              </div>
               {trip.customerPhone && (
-                <p className="text-slate-600 mt-0.5 flex items-center font-medium">
-                  <Phone className="w-3 h-3 mr-1 text-slate-400" />
-                  {trip.customerPhone}
-                </p>
+                <a
+                  href={`tel:${trip.customerPhone}`}
+                  className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white flex items-center justify-center shadow-md shadow-blue-600/20 border-2 border-blue-500/80 transition-all shrink-0 cursor-pointer group"
+                  title={`Call Guest (${trip.customerPhone})`}
+                  aria-label="Call Guest"
+                >
+                  <Phone className="w-4 h-4 transition-transform group-hover:scale-110" />
+                </a>
               )}
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between">
-              <div>
+            <div className="p-3 sm:p-3.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Vehicle & Driver</span>
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-900 text-sm">{trip.driverName}</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-900 text-sm truncate">{trip.driverName}</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 shrink-0">
                     {trip.vehicleType}
                   </span>
                 </div>
@@ -214,10 +235,11 @@ export const GuestPortalView: React.FC<GuestPortalViewProps> = ({
               {trip.driverPhone && (
                 <a
                   href={`tel:${trip.driverPhone}`}
-                  className="mt-2 inline-flex items-center justify-center px-2.5 py-1 rounded bg-white text-blue-700 hover:bg-blue-50 border border-blue-200 text-[11px] font-bold transition-colors"
+                  className="w-10 h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 border-2 border-emerald-500/80 transition-all shrink-0 cursor-pointer group"
+                  title={`Call Driver (${trip.driverPhone})`}
+                  aria-label="Call Driver"
                 >
-                  <Phone className="w-3 h-3 mr-1" />
-                  Call Driver ({trip.driverPhone})
+                  <Phone className="w-4 h-4 transition-transform group-hover:scale-110" />
                 </a>
               )}
             </div>

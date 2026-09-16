@@ -84,16 +84,8 @@ export const Header: React.FC<HeaderProps> = ({ onPlanTripClick, onNavigateHome 
                 }`}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  const step = Number(target.dataset.fallbackStep || '0');
-                  if (step === 0) {
-                    target.dataset.fallbackStep = '1';
-                    target.src = './TC_logo_footer.png';
-                  } else if (step === 1) {
-                    target.dataset.fallbackStep = '2';
-                    target.src = 'TC_logo_footer.png';
-                  } else if (step === 2) {
-                    target.dataset.fallbackStep = '3';
-                    target.src = 'assets/TC_logo_footer.png';
+                  if (!target.src.includes('assets/TC_logo_footer.png')) {
+                    target.src = `${baseUrl}/assets/TC_logo_footer.png`;
                   }
                 }}
               />
@@ -109,16 +101,8 @@ export const Header: React.FC<HeaderProps> = ({ onPlanTripClick, onNavigateHome 
                 }`}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  const step = Number(target.dataset.fallbackStep || '0');
-                  if (step === 0) {
-                    target.dataset.fallbackStep = '1';
-                    target.src = './TC_logo_horizontal.png';
-                  } else if (step === 1) {
-                    target.dataset.fallbackStep = '2';
-                    target.src = 'TC_logo_horizontal.png';
-                  } else if (step === 2) {
-                    target.dataset.fallbackStep = '3';
-                    target.src = 'assets/TC_logo_horizontal.png';
+                  if (!target.src.includes('assets/TC_logo_horizontal.png')) {
+                    target.src = `${baseUrl}/assets/TC_logo_horizontal.png`;
                   }
                 }}
               />

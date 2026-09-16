@@ -63,6 +63,7 @@ export interface CompanySettings {
   tagline: string;
   phone: string;
   email: string;
+  website?: string;
   address: string;
   gstNo?: string;
   upiId: string;

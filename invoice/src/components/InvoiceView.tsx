@@ -3,8 +3,7 @@ import { TripRecord, CompanySettings } from '../types';
 import { formatCurrency, formatNumber, generateWhatsAppMessage, generateUpiPaymentUrl } from '../utils/calculations';
 import { TravelCareLogo } from './TravelCareLogo';
 import { ShareInvoiceModal } from './ShareInvoiceModal';
-import html2canvas from 'html2canvas-pro';
-import jsPDF from 'jspdf';
+import { generateInvoicePdf, generateInvoiceImage } from '../utils/pdfGenerator';
 import confetti from 'canvas-confetti';
 import { 
   Printer, 
@@ -17,6 +16,7 @@ import {
   Car, 
   Phone, 
   Mail, 
+  Globe,
   MapPin, 
   Calendar, 
   Clock, 
@@ -67,40 +67,8 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
     : '';
 
   // Core helper: generates jsPDF object with optimal resolution and A4 fit
-  const createPdfDocument = async (): Promise<{ pdf: jsPDF; filename: string; blob: Blob }> => {
-    if (!invoiceRef.current) throw new Error('Invoice container not found');
-    const element = invoiceRef.current;
-
-    // High quality canvas render
-    const canvas = await html2canvas(element, {
-      scale: 3, // 3x ultra-sharp crisp rendering
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      windowWidth: element.scrollWidth,
-    });
-
-    const imgData = canvas.toDataURL('image/png', 1.0);
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      compress: true,
-    });
-
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pdfWidth;
-    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-    const renderHeight = Math.min(imgHeight, pdfHeight);
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, renderHeight, undefined, 'FAST');
-
-    const cleanCustomerName = (trip.customerName || 'Guest').replace(/[^a-zA-Z0-9]/g, '_');
-    const filename = `Invoice_${trip.billNo}_${cleanCustomerName}.pdf`;
-    const blob = pdf.output('blob');
-
-    return { pdf, filename, blob };
+  const createPdfDocument = async () => {
+    return generateInvoicePdf(trip, companySettings);
   };
 
   // 1. DIRECT PDF SHARE (Native Web Share with File - triggers WhatsApp directly with PDF attached)
@@ -181,17 +149,12 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
 
   // 4. DOWNLOAD PNG IMAGE
   const handleDownloadImage = async () => {
-    if (!invoiceRef.current) return;
     try {
       setIsExportingPdf(true);
-      const canvas = await html2canvas(invoiceRef.current, {
-        scale: 2.5,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-      });
+      const { dataUrl, filename } = await generateInvoiceImage(trip, companySettings);
       const link = document.createElement('a');
-      link.download = `Invoice_${trip.billNo}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
+      link.download = filename;
+      link.href = dataUrl;
       link.click();
       setShareSuccessNotice('Image receipt downloaded!');
       setTimeout(() => setShareSuccessNotice(null), 3000);
@@ -370,7 +333,13 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
                 <div className="text-xs text-slate-600 space-y-0.5">
                   <p className="font-medium text-slate-500">{companySettings.tagline}</p>
                   <p className="flex items-center"><MapPin className="w-3 h-3 mr-1 text-slate-400 shrink-0" /> {companySettings.address}</p>
-                  <p className="flex items-center"><Phone className="w-3 h-3 mr-1 text-slate-400 shrink-0" /> {companySettings.phone} • <Mail className="w-3 h-3 mx-1 text-slate-400 shrink-0" /> {companySettings.email}</p>
+                  <p className="flex flex-wrap items-center gap-x-2">
+                    <span className="flex items-center"><Phone className="w-3 h-3 mr-1 text-slate-400 shrink-0" /> {companySettings.phone}</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="flex items-center"><Mail className="w-3 h-3 mr-1 text-slate-400 shrink-0" /> {companySettings.email || 'travelcare598@gmail.com'}</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="flex items-center"><Globe className="w-3 h-3 mr-1 text-slate-400 shrink-0" /> {companySettings.website || 'travelcaretours.in'}</span>
+                  </p>
                   {companySettings.gstNo && (
                     <p className="font-mono text-slate-500">GSTIN / Reg No: {companySettings.gstNo}</p>
                   )}

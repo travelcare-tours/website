@@ -37,16 +37,9 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateSection })
                 className="h-20 sm:h-24 md:h-26 w-auto max-h-32 object-contain"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  const step = Number(target.dataset.fallbackStep || '0');
-                  if (step === 0) {
-                    target.dataset.fallbackStep = '1';
-                    target.src = './TC_logo_footer.png';
-                  } else if (step === 1) {
-                    target.dataset.fallbackStep = '2';
-                    target.src = 'TC_logo_footer.png';
-                  } else if (step === 2) {
-                    target.dataset.fallbackStep = '3';
-                    target.src = 'assets/TC_logo_footer.png';
+                  const fallbackUrl = `${(import.meta.env.BASE_URL || './').replace(/\/$/, '')}/assets/TC_logo_footer.png`;
+                  if (target.src !== fallbackUrl) {
+                    target.src = fallbackUrl;
                   }
                 }}
               />

@@ -66,6 +66,9 @@ export default function App() {
         if (!parsed.phone || parsed.phone.includes('98470')) {
           parsed.phone = '+91 91435 43444';
         }
+        if (!parsed.website) {
+          parsed.website = 'travelcaretours.in';
+        }
         return parsed;
       }
     } catch (e) {

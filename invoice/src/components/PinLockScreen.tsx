@@ -85,7 +85,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-16 h-16 bg-white rounded-2xl p-2 flex items-center justify-center shadow-lg shadow-blue-500/10 mb-4 ring-1 ring-white/10">
-            <TravelCareLogo size="sm" showText={false} customLogoUrl="invoice/Logo/TC Logo.png" className="w-12 h-12" />
+            <TravelCareLogo size="sm" variant="icon" showText={false} className="w-12 h-12" />
           </div>
 
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold mb-2">

@@ -5,6 +5,7 @@ export const defaultCompanySettings: CompanySettings = {
   tagline: 'Kerala & South India Premier Cabs & Holiday Trips',
   phone: '+91 91435 43444',
   email: 'travelcare598@gmail.com',
+  website: 'travelcaretours.in',
   address: 'Ground Flr, Mannath Bld, 36/267. Seaport-Airport Rd, Thrikkakara Ernakulam, Kerala',
   gstNo: '32AAAAA0000A1Z5',
   upiId: 'hashimhassan2@okhdfcbank',

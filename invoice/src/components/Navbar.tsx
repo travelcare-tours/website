@@ -44,26 +44,20 @@ export const Navbar = ({
         {/* Responsive Header Height */}
         <div className="flex items-center justify-between h-16 sm:h-18 lg:h-20">
           
-          {/* Logo & Branding - Well-proportioned across Mobile, Tablet, and Desktop */}
+          {/* Plain White Logo as given in the footer of the main webpage */}
           <div 
-            className="flex items-center gap-2.5 sm:gap-3 lg:gap-3.5 cursor-pointer select-none group py-1" 
+            className="flex items-center gap-2.5 sm:gap-3.5 cursor-pointer select-none group py-1" 
             onClick={() => handleNavClick('create')}
+            title="Travel Care Tours - Trip Billing & Invoicing"
           >
-            <div className="w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12 bg-white rounded-xl p-1 flex items-center justify-center shadow-lg shadow-blue-500/10 ring-1 ring-white/20 transition-transform group-hover:scale-105 shrink-0">
-              <TravelCareLogo size="xs" showText={false} customLogoUrl="favicon.svg" className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-1.5 sm:space-x-2">
-                <h1 className="text-base sm:text-lg lg:text-xl font-extrabold leading-tight tracking-tight text-white whitespace-nowrap">
-                  Travel Care
-                </h1>
-                <span className="text-[9px] sm:text-[10px] lg:text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-1.5 sm:px-2 py-0.5 rounded-md tracking-wider uppercase">
-                  Tours
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 font-medium leading-none mt-1 hidden lg:block">
-                Travel Agency Trip Billing & Invoicing
-              </p>
+            <TravelCareLogo 
+              variant="white" 
+              className="h-9 sm:h-11 lg:h-13 w-auto transition-transform group-hover:scale-[1.02]" 
+            />
+            <div className="hidden sm:block border-l border-slate-700/80 pl-2.5 sm:pl-3">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 tracking-wider uppercase block">
+                Trip Billing & Invoicing
+              </span>
             </div>
           </div>
 
