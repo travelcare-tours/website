@@ -42,7 +42,7 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
   const [children, setChildren] = useState<number>(0);
   const [childAges, setChildAges] = useState<number[]>([]);
   const [hotelTier, setHotelTier] = useState<string>('Deluxe 4-Star');
-  const [vehicle, setVehicle] = useState<string>('Private Sedan (Dzire / Etios)');
+  const [vehicle, setVehicle] = useState<string>('Sedan');
   const [houseboat, setHouseboat] = useState<boolean>(true);
   const [spiceTour, setSpiceTour] = useState<boolean>(true);
   const [jeepSafari, setJeepSafari] = useState<boolean>(false);
@@ -78,14 +78,34 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
     message: '',
   });
 
+  const formatTravelDate = (dateStr: string): string => {
+    if (!dateStr) return '';
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        if (!isNaN(dt.getTime())) {
+          return dt.toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          });
+        }
+      }
+      return dateStr;
+    } catch {
+      return dateStr;
+    }
+  };
+
   const handleAdultsChange = (val: number) => {
     const num = Math.max(1, val);
     setAdults(num);
-    if (num + children > 4 && vehicle.includes('Sedan')) {
-      setVehicle('Private SUV (Toyota Innova Crysta)');
+    if (num + children > 4 && vehicle === 'Sedan') {
+      setVehicle('SUV');
     }
     if (num + children > 7) {
-      setVehicle('AC Tempo Traveller (12-17 Seater)');
+      setVehicle('Traveller 12 Seat');
     }
   };
 
@@ -101,11 +121,11 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
         return prev.slice(0, count);
       }
     });
-    if (adults + count > 4 && vehicle.includes('Sedan')) {
-      setVehicle('Private SUV (Toyota Innova Crysta)');
+    if (adults + count > 4 && vehicle === 'Sedan') {
+      setVehicle('SUV');
     }
     if (adults + count > 7) {
-      setVehicle('AC Tempo Traveller (12-17 Seater)');
+      setVehicle('Traveller 12 Seat');
     }
   };
 
@@ -167,16 +187,18 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
         ? ` (Ages: ${childAges.slice(0, children).map((age, i) => `Child ${i + 1}: ${age === 0 ? '<1 yr' : `${age} yrs`}`).join(', ')})`
         : '';
 
+    const formattedDate = formatTravelDate(travelMonth);
+
     return [
       `Hello Travel Care Tours! ${emoji.wave}`,
       'I calculated a custom Kerala holiday plan for you:',
       '',
       `${emoji.person} Guest Name: ${guestName.trim()}`,
       `${emoji.phone} WhatsApp / Phone: ${cleanedPhone}`,
-      travelMonth.trim()
-        ? `${emoji.calendar} Travel Month / Dates: ${travelMonth.trim()}`
+      formattedDate
+        ? `${emoji.calendar} Travel Date: ${formattedDate}`
         : '',
-      `${emoji.palm} Duration: ${nights} Nights / ${nights + 1} Days`,
+      `${emoji.palm} Duration: ${nights} ${nights === 1 ? 'Night' : 'Nights'} / ${nights + 1} Days`,
       `${emoji.family} Guests: ${adults} Adult(s)${children > 0 ? `, ${children} Child(ren)${childAgesFormatted}` : ''}`,
       selectedPackageTitle && selectedPackageTitle !== 'Not decided yet'
         ? `${emoji.target} Package Theme: ${selectedPackageTitle}`
@@ -228,7 +250,7 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
       submitTripEnquiry({
         guestName: guestName.trim(),
         phone: cleanedPhone,
-        travelMonth: travelMonth.trim(),
+        travelMonth: formatTravelDate(travelMonth) || travelMonth.trim(),
         nights,
         adults,
         children,
@@ -412,18 +434,18 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                 <div className="md:col-span-4 lg:col-span-3">
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-1.5">
                     <Calendar className="w-4 h-4 text-brand-green" />
-                    <span>Nights: {nights}</span>
+                    <span>Duration: {nights} {nights === 1 ? 'Night' : 'Nights'}</span>
                   </label>
                   <input
                     type="range"
-                    min="3"
+                    min="1"
                     max="14"
                     value={nights}
                     onChange={(e) => setNights(Number(e.target.value))}
                     className="w-full accent-brand-green cursor-pointer h-2 bg-slate-200 rounded-lg"
                   />
                   <div className="flex justify-between text-[11px] text-slate-500 mt-1 font-semibold">
-                    <span>3 Nights</span>
+                    <span>1 Night</span>
                     <span className="text-brand-green font-bold">{nights}N / {nights + 1}D</span>
                     <span>14 Nights</span>
                   </div>
@@ -547,10 +569,9 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                     onChange={(e) => setVehicle(e.target.value)}
                     className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-800 focus:border-brand-green focus:ring-1 focus:ring-brand-green"
                   >
-                    <option value="Private Sedan (Dzire / Etios)">Private Sedan (Dzire / Etios — 1 to 3 Pax)</option>
-                    <option value="Private SUV (Toyota Innova Crysta)">Private SUV (Toyota Innova Crysta — 4 to 6 Pax)</option>
-                    <option value="AC Tempo Traveller (12-17 Seater)">AC Tempo Traveller (12-17 Seater — Group)</option>
-                    <option value="Luxury Urbania (9-16 Seater)">Luxury Force Urbania (Executive Group)</option>
+                    <option value="Sedan">Sedan</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Traveller 12 Seat">Traveller 12 Seat</option>
                   </select>
                 </div>
               </div>
@@ -665,17 +686,17 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Travel Month / Dates (Optional)
+                      Travel Date (Optional)
                     </label>
                     <div className="relative">
                       <input
-                        type="text"
-                        placeholder="e.g. October 2025 / Diwali week"
+                        type="date"
+                        min={new Date().toISOString().split('T')[0]}
                         value={travelMonth}
                         onChange={(e) => setTravelMonth(e.target.value)}
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:border-brand-green focus:ring-brand-green"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:border-brand-green focus:ring-brand-green text-slate-800"
                       />
-                      <CalendarDays className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                      <CalendarDays className="w-4 h-4 text-slate-400 absolute left-3 top-3.5 pointer-events-none" />
                     </div>
                   </div>
 
@@ -728,9 +749,15 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                       <span className="font-bold text-slate-900">{guestPhone.trim()}</span>
                     </div>
                   )}
+                  {travelMonth && (
+                    <div className="flex justify-between py-1 border-b border-slate-200/60 pb-1.5">
+                      <span className="text-slate-500">Travel Date:</span>
+                      <span className="font-bold text-slate-900">{formatTravelDate(travelMonth)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between py-1">
                     <span className="text-slate-500">Duration:</span>
-                    <span className="font-bold text-slate-900">{nights} Nights / {nights + 1} Days</span>
+                    <span className="font-bold text-slate-900">{nights} {nights === 1 ? 'Night' : 'Nights'} / {nights + 1} Days</span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-slate-500">Guests:</span>
