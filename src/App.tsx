@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { PackagesSection } from './components/PackagesSection';
@@ -14,9 +14,16 @@ import { MobileActionDock } from './components/MobileActionDock';
 import { NotFound } from './components/NotFound';
 import { TourPackage } from './types';
 
+// Lazy load the Invoice App inside the same preview container
+const InvoiceApp = lazy(() => import('../invoice/src/App'));
+
 export default function App() {
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('app') === 'invoice' || urlParams.get('mode') === 'invoice') {
+        return '/invoice';
+      }
       return window.location.pathname || '/';
     }
     return '/';
@@ -31,10 +38,27 @@ export default function App() {
 
   useEffect(() => {
     const handleLocationChange = () => {
-      setCurrentPath(window.location.pathname || '/');
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('app') === 'invoice' || urlParams.get('mode') === 'invoice') {
+        setCurrentPath('/invoice');
+      } else {
+        setCurrentPath(window.location.pathname || '/');
+      }
     };
     window.addEventListener('popstate', handleLocationChange);
     return () => window.removeEventListener('popstate', handleLocationChange);
+  }, []);
+
+  // Keyboard shortcut for staff in preview: Ctrl + Shift + I to toggle invoice app
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i')) {
+        e.preventDefault();
+        setCurrentPath((prev) => (prev.startsWith('/invoice') ? '/' : '/invoice'));
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
   const scrollToSection = (sectionId: string) => {
@@ -91,6 +115,20 @@ export default function App() {
       scrollToSection('trip-planner');
     }
   };
+
+  // If accessing the invoice app
+  if (currentPath.startsWith('/invoice') || currentPath.startsWith('invoice')) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-sm font-semibold tracking-wide text-slate-400">Loading Travel Care Invoice Portal...</p>
+        </div>
+      }>
+        <InvoiceApp />
+      </Suspense>
+    );
+  }
 
   // Determine if we should show the custom 404 page
   const isNotFound = currentPath !== '/' && currentPath !== '' && currentPath !== '/index.html';

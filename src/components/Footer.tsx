@@ -267,7 +267,16 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onNavigateSection })
         {/* Bottom Bar */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <p>
-            © {currentYear} Travel Care Tours Pvt Ltd. All rights reserved.
+            <span 
+              onClick={() => {
+                if (onNavigate) onNavigate('/invoice');
+              }}
+              title="Staff Portal (PIN 2030)"
+              className="cursor-pointer hover:text-slate-400 transition-colors"
+            >
+              © {currentYear} Travel Care Tours Pvt Ltd.
+            </span>{' '}
+            All rights reserved.
           </p>
 
           <div className="flex items-center gap-3">
