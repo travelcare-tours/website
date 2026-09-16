@@ -1,0 +1,8 @@
+{
+  "name": "Travel Care Trip Invoice & Billing",
+  "description": "Travel agency trip billing and invoice generator with pickup/drop-off time duration calculation, itemized fare breakdown, and instant WhatsApp sharing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
