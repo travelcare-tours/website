@@ -20,11 +20,21 @@ import {
   Mail,
   RotateCcw,
   Loader2,
+  PlaneTakeoff,
 } from 'lucide-react';
 import { DESTINATIONS, COMPANY_DETAILS } from '../data/travelData';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { submitTripEnquiry } from '../services/leadService';
 import { Toast } from './Toast';
+import {
+  TripDatePicker,
+  parseLocalDate,
+  toISODateString,
+  formatReadableDate,
+  formatShortDate,
+  calculateNightsBetween,
+  addDays,
+} from './TripDatePicker';
 
 interface TripCalculatorProps {
   selectedDests: string[];
@@ -37,7 +47,26 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
   onToggleDest,
   selectedPackageTitle,
 }) => {
-  const [nights, setNights] = useState<number>(5);
+  // Helper to initialize Pick-up date 3 days in future and Drop-off date 5 nights later
+  const getInitialTripDates = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(today);
+    start.setDate(today.getDate() + 3);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 5);
+    return {
+      start: toISODateString(start),
+      end: toISODateString(end),
+      nights: 5,
+    };
+  };
+
+  const [initialDates] = useState(getInitialTripDates);
+  const [pickUpDate, setPickUpDate] = useState<string>(initialDates.start);
+  const [dropOffDate, setDropOffDate] = useState<string>(initialDates.end);
+  const [nights, setNights] = useState<number>(initialDates.nights);
+
   const [adults, setAdults] = useState<number>(2);
   const [children, setChildren] = useState<number>(0);
   const [childAges, setChildAges] = useState<number[]>([]);
@@ -54,9 +83,24 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
   // Guest Information (Required for personal proposal)
   const [guestName, setGuestName] = useState<string>('');
   const [guestPhone, setGuestPhone] = useState<string>('');
-  const [travelMonth, setTravelMonth] = useState<string>('');
+  const [arrivalDetails, setArrivalDetails] = useState<string>('');
   const [specialNote, setSpecialNote] = useState<string>('');
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Handler for Date Picker with strict validation ensuring Drop-off is after Pick-up
+  const handleDateRangeChange = (newStartStr: string, newEndStr: string, calculatedNights: number) => {
+    const startD = parseLocalDate(newStartStr);
+    let endD = parseLocalDate(newEndStr);
+    
+    // Strict logic ensuring Drop-off date is always logically after the Pick-up date
+    if (endD <= startD) {
+      endD = addDays(startD, 1);
+    }
+    const realNights = calculateNightsBetween(startD, endD);
+    setPickUpDate(toISODateString(startD));
+    setDropOffDate(toISODateString(endD));
+    setNights(realNights);
+  };
 
   // Submission & Feedback State
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -77,26 +121,6 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
     title: '',
     message: '',
   });
-
-  const formatTravelDate = (dateStr: string): string => {
-    if (!dateStr) return '';
-    try {
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-        if (!isNaN(dt.getTime())) {
-          return dt.toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          });
-        }
-      }
-      return dateStr;
-    } catch {
-      return dateStr;
-    }
-  };
 
   const handleAdultsChange = (val: number) => {
     const num = Math.max(1, val);
@@ -187,7 +211,8 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
         ? ` (Ages: ${childAges.slice(0, children).map((age, i) => `Child ${i + 1}: ${age === 0 ? '<1 yr' : `${age} yrs`}`).join(', ')})`
         : '';
 
-    const formattedDate = formatTravelDate(travelMonth);
+    const readableStart = formatReadableDate(parseLocalDate(pickUpDate));
+    const readableEnd = formatReadableDate(parseLocalDate(dropOffDate));
 
     return [
       `Hello Travel Care Tours! ${emoji.wave}`,
@@ -195,9 +220,8 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
       '',
       `${emoji.person} Guest Name: ${guestName.trim()}`,
       `${emoji.phone} WhatsApp / Phone: ${cleanedPhone}`,
-      formattedDate
-        ? `${emoji.calendar} Travel Date: ${formattedDate}`
-        : '',
+      `${emoji.calendar} Pick-up Date: ${readableStart}`,
+      `${emoji.calendar} Drop-off Date: ${readableEnd}`,
       `${emoji.palm} Duration: ${nights} ${nights === 1 ? 'Night' : 'Nights'} / ${nights + 1} Days`,
       `${emoji.family} Guests: ${adults} Adult(s)${children > 0 ? `, ${children} Child(ren)${childAgesFormatted}` : ''}`,
       selectedPackageTitle && selectedPackageTitle !== 'Not decided yet'
@@ -208,6 +232,9 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
       `${emoji.car} Private Transport: ${vehicle}`,
       extras.length > 0
         ? `${emoji.sparkle} Inclusions / Activities: ${extras.join(', ')}`
+        : '',
+      arrivalDetails.trim()
+        ? `🛬 Pickup & Arrival Details: ${arrivalDetails.trim()}`
         : '',
       specialNote.trim()
         ? `${emoji.note} Special Notes: ${specialNote.trim()}`
@@ -250,7 +277,7 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
       submitTripEnquiry({
         guestName: guestName.trim(),
         phone: cleanedPhone,
-        travelMonth: formatTravelDate(travelMonth) || travelMonth.trim(),
+        travelMonth: `${formatReadableDate(parseLocalDate(pickUpDate))} to ${formatReadableDate(parseLocalDate(dropOffDate))} (${nights}N/${nights + 1}D)`,
         nights,
         adults,
         children,
@@ -259,7 +286,7 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
         hotelTier,
         vehicle,
         inclusions: extras.join(', ') || 'Standard Package',
-        specialNote: specialNote.trim(),
+        specialNote: [arrivalDetails.trim() ? `Arrival/Pickup: ${arrivalDetails.trim()}` : '', specialNote.trim()].filter(Boolean).join(' | '),
         packageTitle: selectedPackageTitle !== 'Not decided yet' ? selectedPackageTitle : undefined,
       });
     } catch (err) {
@@ -429,32 +456,21 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                 </div>
               </div>
 
-              {/* 2. Duration & Guest count */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 lg:gap-6 pt-4 border-t border-slate-100">
-                <div className="md:col-span-4 lg:col-span-3">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-brand-green" />
-                    <span>Duration: {nights} {nights === 1 ? 'Night' : 'Nights'}</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="14"
-                    value={nights}
-                    onChange={(e) => setNights(Number(e.target.value))}
-                    className="w-full accent-brand-green cursor-pointer h-2 bg-slate-200 rounded-lg"
-                  />
-                  <div className="flex justify-between text-[11px] text-slate-500 mt-1 font-semibold">
-                    <span>1 Night</span>
-                    <span className="text-brand-green font-bold">{nights}N / {nights + 1}D</span>
-                    <span>14 Nights</span>
-                  </div>
-                </div>
+              {/* 2. Pick-up & Drop-off Dates (Auto-calculated Nights) */}
+              <div className="pt-5 border-t border-slate-100">
+                <TripDatePicker
+                  startDate={pickUpDate}
+                  endDate={dropOffDate}
+                  onChange={handleDateRangeChange}
+                />
+              </div>
 
-                <div className="md:col-span-3 lg:col-span-3">
+              {/* 3. Guest Count */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 lg:gap-6 pt-5 border-t border-slate-100">
+                <div className="md:col-span-4 lg:col-span-4">
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-1.5">
                     <Users className="w-4 h-4 text-brand-green" />
-                    <span>Adults</span>
+                    <span>Adults (12+ yrs)</span>
                   </label>
                   <div className="flex items-center rounded-xl border border-slate-200 overflow-hidden bg-slate-50 min-h-[44px]">
                     <button
@@ -479,7 +495,7 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                   </div>
                 </div>
 
-                <div className="md:col-span-5 lg:col-span-6">
+                <div className="md:col-span-8 lg:col-span-8">
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-1.5">
                     <Users className="w-4 h-4 text-brand-green" />
                     <span>Children (&lt;12 yrs)</span>
@@ -512,7 +528,7 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                     {children > 0 && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-center gap-2.5 w-full">
                         {Array.from({ length: children }).map((_, idx) => (
-                          <div key={idx} className="w-full md:w-auto md:min-w-[150px] lg:min-w-[160px] flex-1">
+                          <div key={idx} className="w-full md:w-auto md:min-w-[140px] lg:min-w-[150px] flex-1">
                             <select
                               value={childAges[idx] ?? 5}
                               onChange={(e) => handleChildAgeChange(idx, Number(e.target.value))}
@@ -685,29 +701,31 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Travel Date (Optional)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="date"
-                        min={new Date().toISOString().split('T')[0]}
-                        value={travelMonth}
-                        onChange={(e) => setTravelMonth(e.target.value)}
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:border-brand-green focus:ring-brand-green text-slate-800"
-                      />
-                      <CalendarDays className="w-4 h-4 text-slate-400 absolute left-3 top-3.5 pointer-events-none" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Special Requests / Airport Pickup (Optional)
+                    <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+                      <PlaneTakeoff className="w-3.5 h-3.5 text-brand-green" />
+                      <span>Airport / Station Pickup Details (Optional)</span>
                     </label>
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder="e.g. Cochin Airport pickup, veg food"
+                        placeholder="e.g. Cochin Airport (COK) 11:30 AM arrival"
+                        value={arrivalDetails}
+                        onChange={(e) => setArrivalDetails(e.target.value)}
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:border-brand-green focus:ring-brand-green"
+                      />
+                      <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-brand-green" />
+                      <span>Special Requests / Meal Preferences (Optional)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="e.g. Pure Veg food, honeymoon cake, river-view room"
                         value={specialNote}
                         onChange={(e) => setSpecialNote(e.target.value)}
                         className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:border-brand-green focus:ring-brand-green"
@@ -715,6 +733,22 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                       <FileText className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                     </div>
                   </div>
+                </div>
+
+                {/* Travel Date confirmation banner */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/70 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-900 font-medium">
+                    <CalendarDays className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      Travel Dates: <strong>{formatReadableDate(parseLocalDate(pickUpDate))}</strong> &rarr; <strong>{formatReadableDate(parseLocalDate(dropOffDate))}</strong>
+                      <span className="ml-1.5 px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold">
+                        {nights}N / {nights + 1}D
+                      </span>
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-emerald-700">
+                    Calculated automatically from Pick-up &amp; Drop-off dates
+                  </span>
                 </div>
 
                 {validationError && (
@@ -749,15 +783,23 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                       <span className="font-bold text-slate-900">{guestPhone.trim()}</span>
                     </div>
                   )}
-                  {travelMonth && (
-                    <div className="flex justify-between py-1 border-b border-slate-200/60 pb-1.5">
-                      <span className="text-slate-500">Travel Date:</span>
-                      <span className="font-bold text-slate-900">{formatTravelDate(travelMonth)}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between py-1 border-b border-slate-200/60 pb-1.5">
+                    <span className="text-slate-500">Pick-up:</span>
+                    <span className="font-bold text-slate-900">
+                      {formatShortDate(parseLocalDate(pickUpDate))} ({parseLocalDate(pickUpDate).toLocaleDateString('en-IN', { weekday: 'short' })})
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-200/60 pb-1.5">
+                    <span className="text-slate-500">Drop-off:</span>
+                    <span className="font-bold text-slate-900">
+                      {formatShortDate(parseLocalDate(dropOffDate))} ({parseLocalDate(dropOffDate).toLocaleDateString('en-IN', { weekday: 'short' })})
+                    </span>
+                  </div>
                   <div className="flex justify-between py-1">
                     <span className="text-slate-500">Duration:</span>
-                    <span className="font-bold text-slate-900">{nights} {nights === 1 ? 'Night' : 'Nights'} / {nights + 1} Days</span>
+                    <span className="font-bold text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-md">
+                      {nights} {nights === 1 ? 'Night' : 'Nights'} / {nights + 1} Days
+                    </span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-slate-500">Guests:</span>
