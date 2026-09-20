@@ -10,6 +10,7 @@ import { AnalyticsView } from './components/AnalyticsView';
 import { CompanySettingsModal } from './components/CompanySettingsModal';
 import { GuestPortalView } from './components/GuestPortalView';
 import { PinLockScreen } from './components/PinLockScreen';
+import { StaffWorkspaceHub } from './components/StaffWorkspaceHub';
 
 export default function App() {
   // Staff Authentication PIN (2030) State
@@ -22,6 +23,24 @@ export default function App() {
     } catch {
       return false;
     }
+  });
+
+  // Active Staff Workspace Module ('hub' chooser vs 'invoice' system)
+  const [activeModule, setActiveModule] = useState<'hub' | 'invoice'>(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (
+        params.get('module') === 'invoice' || 
+        params.get('view') === 'invoice' ||
+        params.get('app') === 'invoice' ||
+        params.has('b') || 
+        params.has('bill') || 
+        params.has('d')
+      ) {
+        return 'invoice';
+      }
+    } catch {}
+    return 'hub';
   });
 
   // Local storage loaded state
@@ -291,6 +310,7 @@ export default function App() {
       console.error('Storage error saving auth state', e);
     }
     setIsAuthenticated(true);
+    setActiveModule('hub');
   };
 
   // Handle Staff PIN Lock / Logout
@@ -302,6 +322,7 @@ export default function App() {
       console.error('Storage error clearing auth state', e);
     }
     setIsAuthenticated(false);
+    setActiveModule('hub');
   };
 
   // If opened via a direct Guest Share URL or user clicked preview guest mode
@@ -332,6 +353,21 @@ export default function App() {
     );
   }
 
+  // Staff Chooser Landing Page: 2 Minimal Cards (Invoice & Billing, Itinerary Planner)
+  if (activeModule === 'hub') {
+    return (
+      <StaffWorkspaceHub
+        onOpenInvoice={() => {
+          setActiveModule('invoice');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onLock={handleLock}
+        companyName={companySettings.companyName}
+        totalTripsCount={trips.length}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">
       {/* Navigation Header */}
@@ -347,6 +383,10 @@ export default function App() {
         totalTripsCount={trips.length}
         onExportCsv={handleExportCsv}
         onLock={handleLock}
+        onReturnToHub={() => {
+          setActiveModule('hub');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
       />
 
       {/* Main Content Areas */}

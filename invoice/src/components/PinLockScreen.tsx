@@ -97,7 +97,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({
             {companyName}
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Trip Billing, Ledger & Fleet Management
+            Trip Billing, Itinerary Planning &amp; Operations
           </p>
         </div>
 

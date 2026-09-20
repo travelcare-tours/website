@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  Car
+  Car,
+  LayoutGrid
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -22,6 +23,7 @@ interface NavbarProps {
   totalTripsCount: number;
   onExportCsv: () => void;
   onLock?: () => void;
+  onReturnToHub?: () => void;
 }
 
 export const Navbar = ({
@@ -30,6 +32,7 @@ export const Navbar = ({
   selectedTrip,
   totalTripsCount,
   onLock,
+  onReturnToHub,
 }: NavbarProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -141,6 +144,19 @@ export const Navbar = ({
               <span>Settings</span>
             </button>
 
+            {/* Switch to Workspace Hub */}
+            {onReturnToHub && (
+              <button
+                id="nav-btn-workspace-hub"
+                onClick={onReturnToHub}
+                title="Return to Workspace Hub (Itinerary Planner & Chooser)"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 lg:px-3.5 py-1.5 lg:py-2 rounded-xl text-xs font-bold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700/90 transition-all cursor-pointer whitespace-nowrap shadow-xs"
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-blue-400" />
+                <span>Workspace Hub</span>
+              </button>
+            )}
+
             {/* Lock / Exit Staff Portal Button */}
             {onLock && (
               <button
@@ -155,8 +171,21 @@ export const Navbar = ({
             )}
           </div>
 
-          {/* Mobile Right Controls: New Trip (+), Lock Icon, and Menu Hamburger */}
+          {/* Mobile Right Controls: New Trip (+), Hub Icon, Lock Icon, and Menu Hamburger */}
           <div className="flex md:hidden items-center space-x-2">
+            {/* Direct Hub Icon on Mobile */}
+            {onReturnToHub && (
+              <button
+                id="mobile-btn-hub"
+                onClick={onReturnToHub}
+                title="Workspace Hub"
+                className="p-2 sm:p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-750 border border-slate-700 transition-all cursor-pointer flex items-center justify-center"
+                aria-label="Workspace Hub"
+              >
+                <LayoutGrid className="w-4 h-4 text-blue-400" />
+              </button>
+            )}
+
             {/* Direct + Icon for New Trip */}
             <button
               id="mobile-btn-new-trip"
@@ -213,6 +242,28 @@ export const Navbar = ({
               Travel Care Tours
             </span>
           </div>
+
+          {/* Switch to Workspace Hub (Chooser) */}
+          {onReturnToHub && (
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onReturnToHub();
+              }}
+              className="w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all cursor-pointer bg-slate-800/90 hover:bg-slate-750 text-slate-200 border border-slate-700 shadow-xs"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30">
+                  <LayoutGrid className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-xs text-white">Switch to Workspace Hub</div>
+                  <div className="text-[11px] text-slate-400">Itinerary Planner &amp; Billing</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 opacity-60" />
+            </button>
+          )}
 
           {/* Trips History & Ledger */}
           <button
