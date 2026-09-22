@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TripRecord, CompanySettings } from '../types';
 import { formatCurrency, formatNumber } from '../utils/calculations';
+import { CustomDropdown } from './CustomDropdown';
 import { 
   X, 
   CheckCircle2, 
@@ -165,16 +166,17 @@ export const PaymentSettlementModal: React.FC<PaymentSettlementModalProps> = ({
                 <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
                   Payment Mode *
                 </label>
-                <select
+                <CustomDropdown
                   value={paymentMode}
-                  onChange={(e) => setPaymentMode(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="UPI">UPI (Google Pay / PhonePe / Paytm)</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Bank Transfer">Bank Transfer / NEFT / IMPS</option>
-                  <option value="Card">Credit / Debit Card</option>
-                </select>
+                  onChange={(val) => setPaymentMode(val as any)}
+                  options={[
+                    { value: 'UPI', label: 'UPI', sublabel: 'Google Pay / PhonePe' },
+                    { value: 'Cash', label: 'Cash', sublabel: 'Cash directly received' },
+                    { value: 'Bank Transfer', label: 'Bank Transfer', sublabel: 'NEFT / IMPS' },
+                    { value: 'Card', label: 'Card', sublabel: 'Credit / Debit Card' },
+                  ]}
+                  triggerClassName="w-full px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 shadow-2xs"
+                />
               </div>
             </div>
 

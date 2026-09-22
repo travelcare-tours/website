@@ -25,6 +25,7 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 import { handleImageFallback } from '../utils/imageFallback';
 import { submitTripEnquiry } from '../services/leadService';
 import { Toast } from './Toast';
+import { CustomDropdown } from './CustomDropdown';
 
 interface ServiceItem {
   id: 'cab' | 'hotel' | 'houseboat';
@@ -696,17 +697,17 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onPlanTripClic
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Vehicle Preference
                       </label>
-                      <select
+                      <CustomDropdown
                         value={cabVehicle}
-                        onChange={(e) => setCabVehicle(e.target.value)}
-                        className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-hidden focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 bg-white"
-                      >
-                        <option value="Toyota Innova Crysta">Toyota Innova Crysta (6 Guests)</option>
-                        <option value="Sedan (Swift Dzire / Etios)">Sedan (Swift Dzire / Etios - 4 Guests)</option>
-                        <option value="Tempo Traveller (12 to 26 Seater)">Tempo Traveller (12 to 26 Seater)</option>
-                        <option value="Force Urbania Luxury">Force Urbania Luxury</option>
-                        <option value="Recommend Best Vehicle">Recommend Best for my group</option>
-                      </select>
+                        onChange={(val) => setCabVehicle(String(val))}
+                        options={[
+                          { value: 'Toyota Innova Crysta', label: 'Toyota Innova Crysta', sublabel: '6 Guests' },
+                          { value: 'Sedan (Swift Dzire / Etios)', label: 'Sedan (Swift Dzire / Etios)', sublabel: '4 Guests' },
+                          { value: 'Tempo Traveller (12 to 26 Seater)', label: 'Tempo Traveller', sublabel: '12 to 26 Seater' },
+                          { value: 'Force Urbania Luxury', label: 'Force Urbania Luxury', sublabel: 'Premium Van' },
+                          { value: 'Recommend Best Vehicle', label: 'Recommend Best Vehicle', sublabel: 'Best for my group' },
+                        ]}
+                      />
                     </div>
                   </div>
 
@@ -714,16 +715,16 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onPlanTripClic
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Cab Trip Type
                     </label>
-                    <select
+                    <CustomDropdown
                       value={cabTripType}
-                      onChange={(e) => setCabTripType(e.target.value)}
-                      className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-hidden focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 bg-white"
-                    >
-                      <option value="Airport Transfer Only (One-Way)">Airport Transfer Only (One-Way)</option>
-                      <option value="Multi-Day Kerala Tour with Driver">Multi-Day Kerala Tour with Chauffeur</option>
-                      <option value="Round Trip Inter-City">Round Trip Inter-City</option>
-                      <option value="Local City Sightseeing">Local City Sightseeing</option>
-                    </select>
+                      onChange={(val) => setCabTripType(String(val))}
+                      options={[
+                        { value: 'Airport Transfer Only (One-Way)', label: 'Airport Transfer Only', sublabel: 'One-Way' },
+                        { value: 'Multi-Day Kerala Tour with Driver', label: 'Multi-Day Kerala Tour', sublabel: 'With Chauffeur' },
+                        { value: 'Round Trip Inter-City', label: 'Round Trip Inter-City', sublabel: 'Two-Way Transfer' },
+                        { value: 'Local City Sightseeing', label: 'Local City Sightseeing', sublabel: 'Full / Half Day' },
+                      ]}
+                    />
                   </div>
                 </div>
               )}
@@ -786,17 +787,17 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onPlanTripClic
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Preferred Hotel Category
                       </label>
-                      <select
+                      <CustomDropdown
                         value={hotelCategory}
-                        onChange={(e) => setHotelCategory(e.target.value)}
-                        className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-hidden focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 bg-white"
-                      >
-                        <option value="4-Star Premium Resort">4-Star Premium Resort</option>
-                        <option value="3-Star Comfort Hotel / Homestay">3-Star Comfort Hotel</option>
-                        <option value="5-Star Luxury Resort">5-Star Luxury Resort</option>
-                        <option value="Treehouse / Plantation Villa">Treehouse / Plantation Villa</option>
-                        <option value="Budget-Friendly Clean Stay">Budget-Friendly Clean Stay</option>
-                      </select>
+                        onChange={(val) => setHotelCategory(String(val))}
+                        options={[
+                          { value: '4-Star Premium Resort', label: '4-Star Premium Resort', sublabel: 'Pool & Buffet Breakfast' },
+                          { value: '3-Star Comfort Hotel / Homestay', label: '3-Star Comfort Hotel', sublabel: 'Homestay / Cozy' },
+                          { value: '5-Star Luxury Resort', label: '5-Star Luxury Resort', sublabel: 'Signature Heritage' },
+                          { value: 'Treehouse / Plantation Villa', label: 'Treehouse / Plantation Villa', sublabel: 'Nature Stay' },
+                          { value: 'Budget-Friendly Clean Stay', label: 'Budget-Friendly Clean Stay', sublabel: 'Economy & Clean' },
+                        ]}
+                      />
                     </div>
 
                     <div>
@@ -824,14 +825,14 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onPlanTripClic
                         <MapPin className="w-3.5 h-3.5 text-sky-600" />
                         <span>Cruise Location</span>
                       </label>
-                      <select
+                      <CustomDropdown
                         value={houseboatLocation}
-                        onChange={(e) => setHouseboatLocation(e.target.value)}
-                        className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-hidden focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 bg-white"
-                      >
-                        <option value="Alleppey (Alappuzha) - Punnamada">Alleppey (Alappuzha)</option>
-                        <option value="Kumarakom (Vembanad Lake)">Kumarakom (Vembanad Lake)</option>
-                      </select>
+                        onChange={(val) => setHouseboatLocation(String(val))}
+                        options={[
+                          { value: 'Alleppey (Alappuzha) - Punnamada', label: 'Alleppey (Alappuzha)', sublabel: 'Punnamada Lake' },
+                          { value: 'Kumarakom (Vembanad Lake)', label: 'Kumarakom', sublabel: 'Vembanad Lake' },
+                        ]}
+                      />
                     </div>
 
                     <div>
@@ -855,30 +856,30 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ onPlanTripClic
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Cruise Duration
                       </label>
-                      <select
+                      <CustomDropdown
                         value={houseboatCruiseType}
-                        onChange={(e) => setHouseboatCruiseType(e.target.value)}
-                        className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-hidden focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 bg-white"
-                      >
-                        <option value="Overnight Stay (12 PM - 9 AM next day)">Overnight Stay (12 PM to 9 AM)</option>
-                        <option value="Day Cruise Only (11:00 AM - 5:00 PM)">Day Cruise Only (11 AM to 5 PM)</option>
-                      </select>
+                        onChange={(val) => setHouseboatCruiseType(String(val))}
+                        options={[
+                          { value: 'Overnight Stay (12 PM - 9 AM next day)', label: 'Overnight Stay', sublabel: '12 PM to 9 AM next day' },
+                          { value: 'Day Cruise Only (11:00 AM - 5:00 PM)', label: 'Day Cruise Only', sublabel: '11:00 AM to 5:00 PM' },
+                        ]}
+                      />
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Number of Bedrooms
                       </label>
-                      <select
+                      <CustomDropdown
                         value={houseboatBedrooms}
-                        onChange={(e) => setHouseboatBedrooms(e.target.value)}
-                        className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 focus:outline-hidden focus:border-brand-green focus:ring-2 focus:ring-brand-green/20 bg-white"
-                      >
-                        <option value="1-BHK Private (Couple / Honeymoon)">1-BHK Private (Honeymoon/Couple)</option>
-                        <option value="2-BHK Private (Family 4-6)">2-BHK Private (Family)</option>
-                        <option value="3-BHK Private (Family 6-8)">3-BHK Private (6-8 Guests)</option>
-                        <option value="4-BHK to 6-BHK Large Boat">4-BHK to 6-BHK (Large Group)</option>
-                      </select>
+                        onChange={(val) => setHouseboatBedrooms(String(val))}
+                        options={[
+                          { value: '1-BHK Private (Couple / Honeymoon)', label: '1-BHK Private', sublabel: 'Couple / Honeymoon' },
+                          { value: '2-BHK Private (Family 4-6)', label: '2-BHK Private', sublabel: 'Family 4-6' },
+                          { value: '3-BHK Private (Family 6-8)', label: '3-BHK Private', sublabel: 'Family 6-8 Guests' },
+                          { value: '4-BHK to 6-BHK Large Boat', label: '4-BHK to 6-BHK', sublabel: 'Large Group' },
+                        ]}
+                      />
                     </div>
                   </div>
 

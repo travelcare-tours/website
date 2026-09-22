@@ -4,6 +4,7 @@ import { formatCurrency, formatNumber, convertTripsToCsv, generateWhatsAppMessag
 import { PaymentSettlementModal } from './PaymentSettlementModal';
 import { DataBackupModal } from './DataBackupModal';
 import { ShareInvoiceModal } from './ShareInvoiceModal';
+import { CustomDropdown } from './CustomDropdown';
 import { 
   Search, 
   Filter, 
@@ -285,30 +286,34 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
 
         {/* Filters */}
         <div className="flex items-center flex-wrap gap-2">
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as any)}
-            className="px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-          >
-            <option value="all">All Payment Status</option>
-            <option value="pending">⏳ Pending Balance</option>
-            <option value="closed">✅ Closed / Settled</option>
-          </select>
+          <div className="min-w-[160px]">
+            <CustomDropdown
+              value={filterStatus}
+              onChange={(val) => setFilterStatus(val as any)}
+              options={[
+                { value: 'all', label: 'All Payment Status' },
+                { value: 'pending', label: 'Pending Balance', sublabel: 'Outstanding due' },
+                { value: 'closed', label: 'Closed / Settled', sublabel: 'Paid in full' },
+              ]}
+              triggerClassName="px-3 py-1.5 text-xs bg-white hover:bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-700 shadow-2xs"
+            />
+          </div>
 
-          <select
-            value={filterVehicle}
-            onChange={(e) => setFilterVehicle(e.target.value)}
-            className="px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-          >
-            <option value="all">All Vehicles</option>
-            {vehicleList.map(v => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
+          <div className="min-w-[140px]">
+            <CustomDropdown
+              value={filterVehicle}
+              onChange={(val) => setFilterVehicle(String(val))}
+              options={[
+                { value: 'all', label: 'All Vehicles' },
+                ...vehicleList.map((v) => ({ value: v, label: v })),
+              ]}
+              triggerClassName="px-3 py-1.5 text-xs bg-white hover:bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-700 shadow-2xs"
+            />
+          </div>
 
           <button
             onClick={handleExportCsv}
-            className="inline-flex items-center px-3 py-2 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 transition-colors cursor-pointer"
+            className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 transition-colors cursor-pointer shadow-2xs"
           >
             <Download className="w-3.5 h-3.5 mr-1.5 text-slate-600" />
             Export CSV

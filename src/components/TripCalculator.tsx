@@ -26,6 +26,7 @@ import { DESTINATIONS, COMPANY_DETAILS } from '../data/travelData';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { submitTripEnquiry } from '../services/leadService';
 import { Toast } from './Toast';
+import { CustomDropdown } from './CustomDropdown';
 import {
   TripDatePicker,
   parseLocalDate,
@@ -529,26 +530,27 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-center gap-2.5 w-full">
                         {Array.from({ length: children }).map((_, idx) => (
                           <div key={idx} className="w-full md:w-auto md:min-w-[140px] lg:min-w-[150px] flex-1">
-                            <select
+                            <CustomDropdown
                               value={childAges[idx] ?? 5}
-                              onChange={(e) => handleChildAgeChange(idx, Number(e.target.value))}
-                              className="w-full h-11 px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm font-semibold text-slate-800 focus:outline-hidden focus:border-brand-green focus:bg-white focus:ring-1 focus:ring-brand-green cursor-pointer shadow-2xs"
-                              aria-label={`Age for child ${idx + 1}`}
-                            >
-                              <option value={0}>Child {idx + 1}: &lt;1 yr</option>
-                              <option value={1}>Child {idx + 1}: 1 yr</option>
-                              <option value={2}>Child {idx + 1}: 2 yrs</option>
-                              <option value={3}>Child {idx + 1}: 3 yrs</option>
-                              <option value={4}>Child {idx + 1}: 4 yrs</option>
-                              <option value={5}>Child {idx + 1}: 5 yrs</option>
-                              <option value={6}>Child {idx + 1}: 6 yrs</option>
-                              <option value={7}>Child {idx + 1}: 7 yrs</option>
-                              <option value={8}>Child {idx + 1}: 8 yrs</option>
-                              <option value={9}>Child {idx + 1}: 9 yrs</option>
-                              <option value={10}>Child {idx + 1}: 10 yrs</option>
-                              <option value={11}>Child {idx + 1}: 11 yrs</option>
-                              <option value={12}>Child {idx + 1}: 12 yrs</option>
-                            </select>
+                              onChange={(val) => handleChildAgeChange(idx, Number(val))}
+                              options={[
+                                { value: 0, label: `Child ${idx + 1}: <1 yr` },
+                                { value: 1, label: `Child ${idx + 1}: 1 yr` },
+                                { value: 2, label: `Child ${idx + 1}: 2 yrs` },
+                                { value: 3, label: `Child ${idx + 1}: 3 yrs` },
+                                { value: 4, label: `Child ${idx + 1}: 4 yrs` },
+                                { value: 5, label: `Child ${idx + 1}: 5 yrs` },
+                                { value: 6, label: `Child ${idx + 1}: 6 yrs` },
+                                { value: 7, label: `Child ${idx + 1}: 7 yrs` },
+                                { value: 8, label: `Child ${idx + 1}: 8 yrs` },
+                                { value: 9, label: `Child ${idx + 1}: 9 yrs` },
+                                { value: 10, label: `Child ${idx + 1}: 10 yrs` },
+                                { value: 11, label: `Child ${idx + 1}: 11 yrs` },
+                                { value: 12, label: `Child ${idx + 1}: 12 yrs` },
+                              ]}
+                              triggerClassName="h-11 px-3 py-2 rounded-xl border border-slate-200 hover:border-slate-300 text-xs sm:text-sm font-semibold text-slate-800"
+                              ariaLabel={`Age for child ${idx + 1}`}
+                            />
                           </div>
                         ))}
                       </div>
@@ -564,15 +566,16 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                     <Building className="w-4 h-4 text-brand-green shrink-0" />
                     <span>Resort / Hotel Category</span>
                   </label>
-                  <select
+                  <CustomDropdown
                     value={hotelTier}
-                    onChange={(e) => setHotelTier(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-800 focus:border-brand-green focus:ring-1 focus:ring-brand-green"
-                  >
-                    <option value="Comfort 3-Star">Comfort 3-Star (Clean, cozy & central)</option>
-                    <option value="Deluxe 4-Star">Deluxe 4-Star (Valley/pool views & breakfast)</option>
-                    <option value="Luxury 5-Star & Heritage">Luxury 5-Star & Heritage (Premium luxury)</option>
-                  </select>
+                    onChange={(val) => setHotelTier(String(val))}
+                    options={[
+                      { value: 'Comfort 3-Star', label: 'Comfort 3-Star', sublabel: 'Clean, cozy & central' },
+                      { value: 'Deluxe 4-Star', label: 'Deluxe 4-Star', sublabel: 'Valley/pool views & breakfast' },
+                      { value: 'Luxury 5-Star & Heritage', label: 'Luxury 5-Star & Heritage', sublabel: 'Premium luxury' },
+                    ]}
+                    triggerClassName="px-4 py-3 rounded-xl border border-slate-200 hover:border-slate-300 text-sm font-semibold text-slate-800"
+                  />
                 </div>
 
                 <div>
@@ -580,15 +583,16 @@ export const TripCalculator: React.FC<TripCalculatorProps> = ({
                     <Car className="w-4 h-4 text-brand-green shrink-0" />
                     <span>Dedicated Private Vehicle</span>
                   </label>
-                  <select
+                  <CustomDropdown
                     value={vehicle}
-                    onChange={(e) => setVehicle(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-800 focus:border-brand-green focus:ring-1 focus:ring-brand-green"
-                  >
-                    <option value="Sedan">Sedan</option>
-                    <option value="SUV">SUV</option>
-                    <option value="Traveller 12 Seat">Traveller 12 Seat</option>
-                  </select>
+                    onChange={(val) => setVehicle(String(val))}
+                    options={[
+                      { value: 'Sedan', label: 'Sedan', sublabel: 'Swift Dzire / Etios (Up to 4 Guests)' },
+                      { value: 'SUV', label: 'SUV', sublabel: 'Toyota Innova Crysta (6-7 Guests)' },
+                      { value: 'Traveller 12 Seat', label: 'Traveller 12 Seat', sublabel: 'Tempo Traveller (Group 8-12 Guests)' },
+                    ]}
+                    triggerClassName="px-4 py-3 rounded-xl border border-slate-200 hover:border-slate-300 text-sm font-semibold text-slate-800"
+                  />
                 </div>
               </div>
 

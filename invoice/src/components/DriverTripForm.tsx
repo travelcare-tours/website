@@ -28,6 +28,7 @@ import {
   BookmarkPlus,
   Check
 } from 'lucide-react';
+import { CustomDropdown } from './CustomDropdown';
 
 interface DriverTripFormProps {
   initialTrip?: TripRecord | null;
@@ -1066,18 +1067,16 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                     Vehicle Type *
                   </label>
-                  <select
+                  <CustomDropdown
                     id="select-vehicle-type"
                     value={formData.vehicleType || 'Sedan'}
-                    onChange={(e) => handleVehicleTypeChange(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-medium"
-                  >
-                    {vehiclePresets.map((vp) => (
-                      <option key={vp.type} value={vp.type}>
-                        {vp.type}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => handleVehicleTypeChange(String(val))}
+                    options={vehiclePresets.map((vp) => ({
+                      value: vp.type,
+                      label: vp.type,
+                      sublabel: `₹${vp.defaultRatePerKm}/km • ₹${vp.defaultDailyRate}/day`,
+                    }))}
+                  />
                 </div>
 
                 {/* Vehicle Number with Fleet Memory */}
@@ -1382,17 +1381,17 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                     Advance Payment Mode
                   </label>
-                  <select
+                  <CustomDropdown
                     id="select-payment-mode"
                     value={formData.paymentMode || 'Cash'}
-                    onChange={(e) => handleChange('paymentMode', e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-medium"
-                  >
-                    <option value="Cash">Cash</option>
-                    <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
-                    <option value="Card">Credit / Debit Card</option>
-                    <option value="Bank Transfer">Net Banking / Transfer</option>
-                  </select>
+                    onChange={(val) => handleChange('paymentMode', String(val))}
+                    options={[
+                      { value: 'Cash', label: 'Cash', sublabel: 'Cash collected by driver' },
+                      { value: 'UPI', label: 'UPI', sublabel: 'GPay / PhonePe / Paytm' },
+                      { value: 'Card', label: 'Card', sublabel: 'Credit / Debit Card' },
+                      { value: 'Bank Transfer', label: 'Bank Transfer', sublabel: 'Direct NEFT / IMPS' },
+                    ]}
+                  />
                 </div>
 
                 <div className="sm:col-span-2">
