@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TripRecord, CompanySettings } from '../types';
 import { formatCurrency, formatNumber } from '../utils/calculations';
 import { CustomDropdown } from './CustomDropdown';
+import { ModernDatePicker } from './ModernDateTimePicker';
 import { 
   X, 
   CheckCircle2, 
@@ -151,15 +152,12 @@ export const PaymentSettlementModal: React.FC<PaymentSettlementModalProps> = ({
                 <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1">
                   Payment Date *
                 </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    required
-                    value={settlementDate}
-                    onChange={(e) => setSettlementDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
+                <ModernDatePicker
+                  id="input-settlement-date"
+                  value={settlementDate}
+                  onChange={(dateStr) => setSettlementDate(dateStr)}
+                  required
+                />
               </div>
 
               <div>

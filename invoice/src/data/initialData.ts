@@ -161,11 +161,46 @@ export const commonRoutes = [
   'Local Sightseeing & City Run (8 Hrs / 80 KM)'
 ];
 
-export const vehiclePresets = [
-  { type: 'Sedan', defaultRatePerKm: 16, defaultDailyRate: 1200, defaultIncludedKm: 100 },
-  { type: 'SUV', defaultRatePerKm: 18, defaultDailyRate: 1800, defaultIncludedKm: 100 },
-  { type: 'Innova / Crysta', defaultRatePerKm: 22, defaultDailyRate: 2400, defaultIncludedKm: 100 },
-  { type: 'Tempo Traveller', defaultRatePerKm: 28, defaultDailyRate: 3500, defaultIncludedKm: 150 },
-  { type: 'Hatchback', defaultRatePerKm: 13, defaultDailyRate: 1100, defaultIncludedKm: 80 },
-  { type: 'Luxury', defaultRatePerKm: 35, defaultDailyRate: 5000, defaultIncludedKm: 100 }
+export interface VehiclePreset {
+  type: string;
+  label?: string;
+  defaultRatePerKm: number;
+  defaultDailyRate: number;
+  defaultIncludedKm: number;
+  defaultDriverBata: number;
+  sublabel?: string;
+  description?: string;
+}
+
+export const vehiclePresets: VehiclePreset[] = [
+  {
+    type: 'Sedan',
+    label: 'Sedan',
+    defaultRatePerKm: 18,
+    defaultDailyRate: 2200,
+    defaultIncludedKm: 100,
+    defaultDriverBata: 600,
+    sublabel: '₹18/KM • ₹2,200/Day (100 KM incl.)',
+    description: '₹18/KM • ₹2,200/Day'
+  },
+  {
+    type: 'SUV',
+    label: 'SUV',
+    defaultRatePerKm: 23,
+    defaultDailyRate: 3500,
+    defaultIncludedKm: 100,
+    defaultDriverBata: 700,
+    sublabel: '₹23/KM • ₹3,500/Day (100 KM incl.)',
+    description: '₹23/KM • ₹3,500/Day'
+  },
+  {
+    type: 'Traveller 12 Seat',
+    label: 'Traveller 12 Seat',
+    defaultRatePerKm: 25,
+    defaultDailyRate: 4000,
+    defaultIncludedKm: 100,
+    defaultDriverBata: 800,
+    sublabel: '₹25/KM • ₹4,000/Day (100 KM incl.)',
+    description: '₹25/KM • ₹4,000/Day'
+  }
 ];

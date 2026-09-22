@@ -29,6 +29,7 @@ import {
   Check
 } from 'lucide-react';
 import { CustomDropdown } from './CustomDropdown';
+import { ModernDatePicker, ModernTimePicker } from './ModernDateTimePicker';
 
 interface DriverTripFormProps {
   initialTrip?: TripRecord | null;
@@ -297,10 +298,10 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
     tripRoute: '',
     startingKm: 0,
     closingKm: 0,
-    ratePerKm: 16,
+    ratePerKm: 18,
     includedKm: 100,
-    dailyPackageRate: 1200,
-    driverBata: 1000,
+    dailyPackageRate: 2200,
+    driverBata: 600,
     tollParkingPermit: 0,
     otherCharges: 0,
     advanceReceived: 0,
@@ -365,17 +366,23 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
     setFormData(prev => {
       const pDate = field === 'pickupDate' ? value : (prev.pickupDate || todayStr);
       const pTime = field === 'pickupTime' ? value : (prev.pickupTime || '08:00');
-      const dDate = field === 'dropoffDate' ? value : (prev.dropoffDate || pDate);
+      let dDate = field === 'dropoffDate' ? value : (prev.dropoffDate || pDate);
       const dTime = field === 'dropoffTime' ? value : (prev.dropoffTime || '20:00');
+
+      // Prevent drop-off date from preceding pickup date
+      if (dDate < pDate) {
+        dDate = pDate;
+      }
 
       const duration = calculateTripDuration(pDate, pTime, dDate, dTime);
       const preset = vehiclePresets.find(v => v.type === prev.vehicleType);
       const baseIncludedPerDay = preset ? preset.defaultIncludedKm : 100;
-      const baseDailyBata = 1000;
+      const baseDailyBata = preset ? preset.defaultDriverBata : 600;
 
       return {
         ...prev,
         [field]: value,
+        dropoffDate: dDate,
         dateOfTrip: pDate,
         numberOfDays: duration.days,
         durationText: duration.durationText,
@@ -389,13 +396,16 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
   const handleVehicleTypeChange = (type: string) => {
     const preset = vehiclePresets.find(v => v.type === type);
     const currentDays = durationInfo.days || formData.numberOfDays || 1;
+    const currentNights = durationInfo.nights || 0;
     if (preset) {
+      const calculatedDriverBata = (preset.defaultDriverBata || 600) * currentDays + (currentNights > 0 ? 300 * currentNights : 0);
       setFormData(prev => ({
         ...prev,
         vehicleType: type,
         ratePerKm: preset.defaultRatePerKm,
         dailyPackageRate: preset.defaultDailyRate,
         includedKm: preset.defaultIncludedKm * currentDays,
+        driverBata: calculatedDriverBata,
       }));
     } else {
       handleChange('vehicleType', type);
@@ -565,10 +575,10 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
         tripRoute: 'Cochin - Munnar - Thekkady - Cochin',
         startingKm: 45200,
         closingKm: 45880,
-        ratePerKm: 18,
+        ratePerKm: 23,
         includedKm: 400,
-        dailyPackageRate: 1800,
-        driverBata: 2400,
+        dailyPackageRate: 3500,
+        driverBata: 2800,
         tollParkingPermit: 450,
         otherCharges: 0,
         advanceReceived: 5000,
@@ -595,16 +605,16 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
         customerName: 'Anoop & Family',
         customerPhone: '+91 98470 11223',
         vehicleNumber: 'KL41P5412',
-        vehicleType: 'Innova Crysta',
+        vehicleType: 'SUV',
         driverName: 'Sujith Kumar',
         driverPhone: '+91 98470 54321',
         tripRoute: 'Kochi Airport (COK) -> Fort Kochi Sightseeing -> Hotel Drop',
         startingKm: 84200,
         closingKm: 84330,
-        ratePerKm: 20,
+        ratePerKm: 23,
         includedKm: 100,
-        dailyPackageRate: 2600,
-        driverBata: 600,
+        dailyPackageRate: 3500,
+        driverBata: 700,
         tollParkingPermit: 250,
         otherCharges: 0,
         advanceReceived: 1000,
@@ -638,9 +648,9 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
         tripRoute: 'Munnar - Alleppey Houseboat - Kochi Airport',
         startingKm: 162100,
         closingKm: 162620,
-        ratePerKm: 16,
+        ratePerKm: 18,
         includedKm: 300,
-        dailyPackageRate: 1400,
+        dailyPackageRate: 2200,
         driverBata: 1800,
         tollParkingPermit: 350,
         otherCharges: 0,
@@ -777,68 +787,133 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
 
               {/* Pickup and Drop-off Timings Grid */}
               <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 mb-4">
-                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-3">
-                  Trip Schedule & Timing
-                </span>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Trip Schedule & Timing
+                  </span>
+                  <div className="flex items-center space-x-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date().toISOString().split('T')[0];
+                        handleDateTimeChange('pickupDate', today);
+                      }}
+                      className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors"
+                    >
+                      Today
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tmr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+                        handleDateTimeChange('pickupDate', tmr);
+                      }}
+                      className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors"
+                    >
+                      Tomorrow
+                    </button>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Pickup Date & Time */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-600">
-                      Pickup Date & Time *
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-600 flex items-center justify-between">
+                      <span>Pickup Date & Time *</span>
+                      <span className="text-[10px] text-blue-600 font-normal">Start Trip</span>
                     </label>
                     <div className="grid grid-cols-5 gap-2">
-                      <div className="col-span-3 relative">
-                        <Calendar className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" />
-                        <input
-                          type="date"
-                          required
+                      <div className="col-span-3">
+                        <ModernDatePicker
                           id="input-pickup-date"
                           value={formData.pickupDate || todayStr}
-                          onChange={(e) => handleDateTimeChange('pickupDate', e.target.value)}
-                          className="w-full pl-8 pr-2 py-2 text-xs bg-white border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                          onChange={(dateStr) => handleDateTimeChange('pickupDate', dateStr)}
+                          placeholder="Select pickup date"
+                          required
                         />
                       </div>
-                      <div className="col-span-2 relative">
-                        <Clock className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2.5" />
-                        <input
-                          type="time"
-                          required
+                      <div className="col-span-2">
+                        <ModernTimePicker
                           id="input-pickup-time"
                           value={formData.pickupTime || '08:00'}
-                          onChange={(e) => handleDateTimeChange('pickupTime', e.target.value)}
-                          className="w-full pl-7 pr-2 py-2 text-xs bg-white border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium font-mono"
+                          onChange={(timeStr) => handleDateTimeChange('pickupTime', timeStr)}
+                          placeholder="Time"
+                          required
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* Drop-off Date & Time */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-600">
-                      Drop-off Date & Time *
-                    </label>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-slate-600">
+                        Drop-off Date & Time *
+                      </label>
+                      <div className="flex items-center space-x-1 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const p = formData.pickupDate || todayStr;
+                            handleDateTimeChange('dropoffDate', p);
+                          }}
+                          className="px-1.5 py-0.5 text-blue-600 hover:text-blue-800 font-medium hover:bg-blue-50 rounded"
+                        >
+                          Same Day
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const base = new Date(formData.pickupDate || todayStr);
+                            base.setDate(base.getDate() + 1);
+                            handleDateTimeChange('dropoffDate', base.toISOString().split('T')[0]);
+                          }}
+                          className="px-1.5 py-0.5 text-blue-600 hover:text-blue-800 font-medium hover:bg-blue-50 rounded"
+                        >
+                          +1D
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const base = new Date(formData.pickupDate || todayStr);
+                            base.setDate(base.getDate() + 2);
+                            handleDateTimeChange('dropoffDate', base.toISOString().split('T')[0]);
+                          }}
+                          className="px-1.5 py-0.5 text-blue-600 hover:text-blue-800 font-medium hover:bg-blue-50 rounded"
+                        >
+                          +2D
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const base = new Date(formData.pickupDate || todayStr);
+                            base.setDate(base.getDate() + 3);
+                            handleDateTimeChange('dropoffDate', base.toISOString().split('T')[0]);
+                          }}
+                          className="px-1.5 py-0.5 text-blue-600 hover:text-blue-800 font-medium hover:bg-blue-50 rounded"
+                        >
+                          +3D
+                        </button>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-5 gap-2">
-                      <div className="col-span-3 relative">
-                        <Calendar className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" />
-                        <input
-                          type="date"
-                          required
+                      <div className="col-span-3">
+                        <ModernDatePicker
                           id="input-dropoff-date"
                           value={formData.dropoffDate || formData.pickupDate || todayStr}
-                          onChange={(e) => handleDateTimeChange('dropoffDate', e.target.value)}
-                          className="w-full pl-8 pr-2 py-2 text-xs bg-white border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium"
+                          minDate={formData.pickupDate || todayStr}
+                          onChange={(dateStr) => handleDateTimeChange('dropoffDate', dateStr)}
+                          placeholder="Select drop date"
+                          required
                         />
                       </div>
-                      <div className="col-span-2 relative">
-                        <Clock className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-2.5" />
-                        <input
-                          type="time"
-                          required
+                      <div className="col-span-2">
+                        <ModernTimePicker
                           id="input-dropoff-time"
                           value={formData.dropoffTime || '20:00'}
-                          onChange={(e) => handleDateTimeChange('dropoffTime', e.target.value)}
-                          className="w-full pl-7 pr-2 py-2 text-xs bg-white border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-600 font-medium font-mono"
+                          onChange={(timeStr) => handleDateTimeChange('dropoffTime', timeStr)}
+                          placeholder="Time"
+                          required
                         />
                       </div>
                     </div>
@@ -1073,10 +1148,21 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                     onChange={(val) => handleVehicleTypeChange(String(val))}
                     options={vehiclePresets.map((vp) => ({
                       value: vp.type,
-                      label: vp.type,
-                      sublabel: `₹${vp.defaultRatePerKm}/km • ₹${vp.defaultDailyRate}/day`,
+                      label: vp.label || vp.type,
+                      sublabel: vp.sublabel || `₹${vp.defaultRatePerKm}/KM • ₹${vp.defaultDailyRate}/day`,
                     }))}
                   />
+                  {/* Dynamic Rate Sync Banner */}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600 bg-blue-50/80 border border-blue-100 rounded-md px-2.5 py-1">
+                    <span className="font-semibold text-blue-800">
+                      Rates Synced:
+                    </span>
+                    <span className="font-medium text-slate-800">₹{formData.ratePerKm}/KM extra</span>
+                    <span className="text-blue-300">•</span>
+                    <span className="font-medium text-slate-800">₹{(formData.dailyPackageRate || 0).toLocaleString('en-IN')}/day</span>
+                    <span className="text-blue-300">•</span>
+                    <span className="font-medium text-slate-800">100 KM/day incl.</span>
+                  </div>
                 </div>
 
                 {/* Vehicle Number with Fleet Memory */}
@@ -1217,8 +1303,9 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
 
                 {/* Included KM in Package */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Included KM
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Included KM</span>
+                    <span className="text-[10px] text-blue-600 font-medium">100 KM/Day</span>
                   </label>
                   <input
                     type="number"
@@ -1228,15 +1315,16 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                     onChange={(e) => handleChange('includedKm', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono"
                   />
-                  <div className="text-[10px] text-slate-400 mt-1.5 min-h-[22px] flex items-center">
-                    Package allowance
+                  <div className="text-[10px] text-slate-500 mt-1.5 min-h-[22px] flex items-center">
+                    <span>Package: 100 KM × {formData.numberOfDays || 1} day(s)</span>
                   </div>
                 </div>
 
                 {/* Rate per Extra KM */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Rate per Extra KM ({currency}) *
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Rate per Extra KM ({currency}) *</span>
+                    <span className="text-[10px] text-emerald-600 font-medium">Synced: ₹{formData.ratePerKm}/KM</span>
                   </label>
                   <input
                     type="number"
@@ -1248,8 +1336,8 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                     onChange={(e) => handleChange('ratePerKm', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono font-bold text-blue-700"
                   />
-                  <div className="text-[10px] text-slate-400 mt-1.5 min-h-[22px] flex items-center">
-                    Beyond package limit
+                  <div className="text-[10px] text-slate-500 mt-1.5 min-h-[22px] flex items-center">
+                    <span>Beyond package limit</span>
                   </div>
                 </div>
               </div>
@@ -1286,7 +1374,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
                     <span>Daily Rate ({currency})</span>
-                    <span className="text-[10px] text-slate-400 normal-case">Hire / Day</span>
+                    <span className="text-[10px] text-blue-600 font-medium">Synced: ₹{formData.dailyPackageRate}/day</span>
                   </label>
                   <input
                     type="number"
@@ -1296,12 +1384,16 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                     onChange={(e) => handleChange('dailyPackageRate', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono font-medium"
                   />
+                  <div className="text-[10px] text-slate-500 mt-1 flex items-center">
+                    <span>{formData.numberOfDays || 1} day(s) = {formatCurrency((formData.dailyPackageRate || 0) * (formData.numberOfDays || 1), currency)}</span>
+                  </div>
                 </div>
 
                 {/* Driver Bata */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Driver Bata / Allowance ({currency})
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Driver Bata / Allowance ({currency})</span>
+                    <span className="text-[10px] text-emerald-600 font-medium">Synced: ₹{formData.driverBata}</span>
                   </label>
                   <input
                     type="number"
@@ -1311,6 +1403,11 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                     onChange={(e) => handleChange('driverBata', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono font-medium"
                   />
+                  <div className="text-[10px] text-slate-500 mt-1 flex items-center">
+                    <span>
+                      ₹{vehiclePresets.find(v => v.type === formData.vehicleType)?.defaultDriverBata || 600}/day base allowance
+                    </span>
+                  </div>
                 </div>
 
                 {/* Toll, Parking, Permit */}
