@@ -6,14 +6,9 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 interface HeaderProps {
   onPlanTripClick?: () => void;
   onNavigateHome?: (sectionId?: string) => void;
-  onOpenFullscreenIntro?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ 
-  onPlanTripClick, 
-  onNavigateHome,
-  onOpenFullscreenIntro 
-}) => {
+export const Header: React.FC<HeaderProps> = ({ onPlanTripClick, onNavigateHome }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -171,15 +166,6 @@ export const Header: React.FC<HeaderProps> = ({
             >
               FAQs
             </a>
-            {onOpenFullscreenIntro && (
-              <button
-                type="button"
-                onClick={onOpenFullscreenIntro}
-                className="hidden xl:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-brand-green hover:bg-brand-green hover:text-white transition-all border border-emerald-200 cursor-pointer"
-              >
-                <span>Brand Story</span>
-              </button>
-            )}
           </nav>
 
           {/* Right actions (Plan Trip & Menu toggle for Tablet/Mobile) */}
@@ -277,19 +263,6 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 FAQs
               </a>
-              {onOpenFullscreenIntro && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    onOpenFullscreenIntro();
-                  }}
-                  className="w-full text-left px-3 py-2 rounded-xl text-emerald-700 bg-emerald-50/90 hover:bg-emerald-100 font-semibold text-xs transition-colors flex items-center justify-between"
-                >
-                  <span>Watch Brand Intro Video</span>
-                  <span className="text-[10px] bg-emerald-200/80 px-1.5 py-0.5 rounded text-emerald-900 font-bold">▶ PLAY</span>
-                </button>
-              )}
               {/* Contact Helpline & WhatsApp */}
               <div className="pt-2.5 mt-2 border-t border-slate-100 space-y-2">
                 <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">

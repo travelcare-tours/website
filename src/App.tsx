@@ -12,7 +12,6 @@ import { ItineraryModal } from './components/ItineraryModal';
 import { FloatingWhatsApp } from './components/FloatingWhatsApp';
 import { MobileActionDock } from './components/MobileActionDock';
 import { NotFound } from './components/NotFound';
-import { BrandSplashScreen } from './components/BrandSplashScreen';
 import { TourPackage } from './types';
 
 // Lazy load the Invoice App inside the same preview container
@@ -44,44 +43,6 @@ export default function App() {
     'Alleppey',
   ]);
   const [activeModalPackage, setActiveModalPackage] = useState<TourPackage | null>(null);
-  const [showSplash, setShowSplash] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (
-        urlParams.has('app') || 
-        urlParams.has('mode') || 
-        urlParams.has('b') || 
-        urlParams.has('bill') || 
-        urlParams.has('invoice') || 
-        urlParams.has('d') ||
-        urlParams.has('data') ||
-        urlParams.has('nosplash') ||
-        window.location.pathname.startsWith('/invoice')
-      ) {
-        return false;
-      }
-      try {
-        const seen = sessionStorage.getItem('tc_splash_seen');
-        return seen !== 'true';
-      } catch {
-        return false;
-      }
-    }
-    return false;
-  });
-
-  const handleCloseSplash = () => {
-    try {
-      sessionStorage.setItem('tc_splash_seen', 'true');
-    } catch (e) {
-      console.error('Storage error saving splash state', e);
-    }
-    setShowSplash(false);
-  };
-
-  const handleTriggerSplash = () => {
-    setShowSplash(true);
-  };
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -206,7 +167,6 @@ export default function App() {
       <Header
         onPlanTripClick={() => scrollToSection('trip-planner')}
         onNavigateHome={handleNavigateHome}
-        onOpenFullscreenIntro={handleTriggerSplash}
       />
 
       {/* Main Sections */}
@@ -241,7 +201,7 @@ export default function App() {
         />
 
         {/* 5. Why Choose Travel Care Tours */}
-        <WhyUs onOpenFullscreenIntro={handleTriggerSplash} />
+        <WhyUs />
 
         {/* 6. Frequently Asked Questions */}
         <FaqSection />
@@ -265,9 +225,6 @@ export default function App() {
 
       {/* Mobile Sticky Action Dock (Call, Plan Trip, WhatsApp) */}
       <MobileActionDock onPlanTripClick={() => scrollToSection('trip-planner')} />
-
-      {/* One-Time Animated Brand Welcome Splash Overlay */}
-      <BrandSplashScreen isOpen={showSplash} onClose={handleCloseSplash} />
     </div>
   );
 }

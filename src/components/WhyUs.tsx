@@ -1,12 +1,7 @@
 import React from 'react';
 import { Route, Hotel, Palmtree, MessageSquareQuote, Plane, Utensils, Languages, ShieldCheck } from 'lucide-react';
-import { BrandVideoShowcase } from './BrandVideoShowcase';
 
-interface WhyUsProps {
-  onOpenFullscreenIntro?: () => void;
-}
-
-export const WhyUs: React.FC<WhyUsProps> = ({ onOpenFullscreenIntro }) => {
+export const WhyUs: React.FC = () => {
   const pillars = [
     {
       number: "01",
@@ -93,11 +88,6 @@ export const WhyUs: React.FC<WhyUsProps> = ({ onOpenFullscreenIntro }) => {
               </div>
             );
           })}
-        </div>
-
-        {/* Brand Story & Video Animation Showcase */}
-        <div className="mt-12 sm:mt-16">
-          <BrandVideoShowcase onOpenFullscreenIntro={onOpenFullscreenIntro} />
         </div>
 
         {/* Pan-India Guest Connectivity Banner */}
