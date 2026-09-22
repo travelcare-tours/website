@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build && mkdir -p dist/invoice && cp -r invoice/dist/* dist/invoice/",
+    "build": "vite build && node -e \"const fs = require('fs'); if (fs.existsSync('invoice/dist') && fs.readdirSync('invoice/dist').length > 0) { require('child_process').execSync('mkdir -p dist/invoice && cp -r invoice/dist/* dist/invoice/', { stdio: 'inherit' }); }\"",
     "build:invoice": "cd invoice && npm install && npm run build && cd .. && mkdir -p dist/invoice && cp -r invoice/dist/* dist/invoice/",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",

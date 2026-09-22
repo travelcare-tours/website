@@ -41,7 +41,7 @@ jobs:
       - name: Build and bundle invoice sub-application
         run: |
           cd invoice
-          npm install
+          npm ci || npm install
           npm run build
           cd ..
           mkdir -p dist/invoice
