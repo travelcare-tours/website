@@ -77,16 +77,18 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+    <div style={{ fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }} className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 font-sans">
       {/* Title */}
       <div>
-        <h1 className="text-lg sm:text-xl font-bold text-slate-900">Fleet & Earnings Insights</h1>
+        <h1 style={{ fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }} className="text-lg sm:text-xl font-bold text-slate-900 font-sans tracking-normal">
+          Fleet & Earnings Insights
+        </h1>
         <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">Overview of driver allocations, vehicle distance, and revenue channels</p>
       </div>
 
       {/* Driver Performance Cards */}
       <div className="bg-white p-3.5 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
-        <h2 className="text-xs sm:text-sm font-bold text-slate-900 mb-3 sm:mb-4 flex items-center space-x-2">
+        <h2 style={{ fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }} className="text-xs sm:text-sm font-bold text-slate-900 mb-3 sm:mb-4 flex items-center space-x-2 font-sans">
           <UserCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
           <span>Driver Breakdown & Allowance (Bata)</span>
         </h2>
@@ -122,7 +124,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Vehicles */}
         <div className="bg-white p-3.5 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
-          <h2 className="text-xs sm:text-sm font-bold text-slate-900 mb-3 sm:mb-4 flex items-center space-x-2">
+          <h2 style={{ fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }} className="text-xs sm:text-sm font-bold text-slate-900 mb-3 sm:mb-4 flex items-center space-x-2 font-sans">
             <Car className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" />
             <span>Vehicle Utilization</span>
           </h2>
@@ -144,7 +146,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
         {/* Expenses & Pass-through */}
         <div className="bg-white p-3.5 sm:p-5 rounded-xl border border-slate-200 shadow-xs">
-          <h2 className="text-xs sm:text-sm font-bold text-slate-900 mb-3 sm:mb-4 flex items-center space-x-2">
+          <h2 style={{ fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }} className="text-xs sm:text-sm font-bold text-slate-900 mb-3 sm:mb-4 flex items-center space-x-2 font-sans">
             <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
             <span>Tariff & Pass-through Summary</span>
           </h2>
