@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { TripRecord, CompanySettings } from '../types';
 import { calculateTripTotals, calculateTripDuration, formatCurrency, formatNumber, generateWhatsAppMessage } from '../utils/calculations';
-import { vehiclePresets, commonRoutes } from '../data/initialData';
+import { vehiclePresets, commonRoutes, defaultFleetVehicles, FleetVehicle } from '../data/initialData';
 import { 
   Car, 
   User, 
@@ -21,7 +21,6 @@ import {
   ShieldCheck,
   RefreshCw,
   Moon,
-  Zap,
   Navigation,
   Plus,
   X,
@@ -265,16 +264,55 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
   }, [existingTrips]);
 
   const recentVehicles = useMemo(() => {
-    const map = new Map<string, { type: string; driver: string; phone: string }>();
-    existingTrips.forEach(t => {
-      if (t.vehicleNumber && t.vehicleNumber.trim().length > 2 && !map.has(t.vehicleNumber.trim())) {
-        map.set(t.vehicleNumber.trim(), {
-          type: t.vehicleType || 'Sedan',
-          driver: t.driverName || '',
-          phone: t.driverPhone || ''
+    const map = new Map<string, { type: string; label?: string }>();
+
+    // 1. Official Fleet Memory (Traveller KL05AQ6500 & company vehicles)
+    defaultFleetVehicles.forEach(v => {
+      const num = v.number.trim().toUpperCase();
+      if (num !== 'KL39N1510') {
+        map.set(num, {
+          type: v.type,
+          label: v.label
         });
       }
     });
+
+    // 2. Custom remembered fleet vehicles from localStorage
+    try {
+      const savedFleet = localStorage.getItem('tc_fleet_vehicles_v1');
+      if (savedFleet) {
+        const parsed: FleetVehicle[] = JSON.parse(savedFleet);
+        parsed.forEach(v => {
+          if (v.number && v.number.trim().length > 2) {
+            const num = v.number.trim().toUpperCase();
+            if (num !== 'KL39N1510') {
+              map.set(num, {
+                type: v.type || 'Sedan',
+                label: v.label
+              });
+            }
+          }
+        });
+      }
+    } catch (e) {
+      console.error('Failed to load fleet memory', e);
+    }
+
+    // 3. Merge vehicles from trip records
+    existingTrips.forEach(t => {
+      if (t.vehicleNumber && t.vehicleNumber.trim().length > 2) {
+        const num = t.vehicleNumber.trim().toUpperCase();
+        if (num !== 'KL39N1510') {
+          const existing = map.get(num);
+          map.set(num, {
+            type: t.vehicleType || existing?.type || 'Sedan',
+            label: existing?.label
+          });
+        }
+      }
+    });
+
+    map.delete('KL39N1510');
     return Array.from(map.entries()).map(([number, data]) => ({ number, ...data }));
   }, [existingTrips]);
 
@@ -399,14 +437,24 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
     const currentNights = durationInfo.nights || 0;
     if (preset) {
       const calculatedDriverBata = (preset.defaultDriverBata || 600) * currentDays + (currentNights > 0 ? 300 * currentNights : 0);
-      setFormData(prev => ({
-        ...prev,
-        vehicleType: type,
-        ratePerKm: preset.defaultRatePerKm,
-        dailyPackageRate: preset.defaultDailyRate,
-        includedKm: preset.defaultIncludedKm * currentDays,
-        driverBata: calculatedDriverBata,
-      }));
+      setFormData(prev => {
+        const next: Partial<TripRecord> = {
+          ...prev,
+          vehicleType: type,
+          ratePerKm: preset.defaultRatePerKm,
+          dailyPackageRate: preset.defaultDailyRate,
+          includedKm: preset.defaultIncludedKm * currentDays,
+          driverBata: calculatedDriverBata,
+        };
+
+        // If current vehicle number is empty, default 'KL', or another preset vehicle, auto-fill default reg number
+        const currentVNum = (prev.vehicleNumber || '').replace(/\s+/g, '').toUpperCase();
+        const isDefaultOrPreset = !currentVNum || currentVNum === 'KL' || ['KL41K1069', 'KL70C4754', 'KL05AQ6500'].includes(currentVNum);
+        if (preset.defaultRegNo && isDefaultOrPreset) {
+          next.vehicleNumber = preset.defaultRegNo;
+        }
+        return next;
+      });
     } else {
       handleChange('vehicleType', type);
     }
@@ -444,6 +492,29 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
     });
   };
 
+  const rememberFleetVehicle = (vehicleNumber?: string, vehicleType?: string) => {
+    const raw = vehicleNumber?.trim().toUpperCase();
+    if (!raw || raw.length < 3 || raw === 'KL' || raw === 'KL39N1510') return;
+    try {
+      const savedFleet = localStorage.getItem('tc_fleet_vehicles_v1');
+      const parsed: FleetVehicle[] = savedFleet ? JSON.parse(savedFleet) : [];
+      const cleanRaw = raw.replace(/\s+/g, '');
+      const existingIdx = parsed.findIndex(f => f.number.replace(/\s+/g, '').toUpperCase() === cleanRaw);
+      const updatedItem: FleetVehicle = {
+        number: raw,
+        type: vehicleType || 'Sedan'
+      };
+      if (existingIdx >= 0) {
+        parsed[existingIdx] = { ...parsed[existingIdx], ...updatedItem };
+      } else {
+        parsed.push(updatedItem);
+      }
+      localStorage.setItem('tc_fleet_vehicles_v1', JSON.stringify(parsed));
+    } catch (e) {
+      console.error('Failed to remember vehicle', e);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent, preview: boolean = true) => {
     e.preventDefault();
 
@@ -467,9 +538,9 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
       customerName: formData.customerName?.trim() || 'Valued Customer',
       customerPhone: formData.customerPhone?.trim() || '',
       numberOfDays: duration.days,
-      vehicleNumber: formData.vehicleNumber?.trim().toUpperCase() || 'KL39N1510',
+      vehicleNumber: formData.vehicleNumber?.trim().toUpperCase() || (formData.vehicleType === 'Traveller 12 Seat' ? 'KL05AQ6500' : ''),
       vehicleType: formData.vehicleType || 'Sedan',
-      driverName: formData.driverName?.trim() || 'Driver',
+      driverName: formData.driverName?.trim() || '',
       driverPhone: formData.driverPhone?.trim() || '',
       tripRoute: formData.tripRoute?.trim() || 'Local / Outstation Trip',
       startingKm: Number(formData.startingKm) || 0,
@@ -490,6 +561,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
     };
 
     learnTripRoute(fullTrip.tripRoute, fullTrip.startingKm, fullTrip.closingKm, fullTrip.totalKm);
+    rememberFleetVehicle(fullTrip.vehicleNumber, fullTrip.vehicleType);
     onSaveTrip(fullTrip, preview);
   };
 
@@ -515,9 +587,9 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
       customerName: formData.customerName?.trim() || 'Valued Customer',
       customerPhone: formData.customerPhone?.trim() || '',
       numberOfDays: duration.days,
-      vehicleNumber: formData.vehicleNumber?.trim().toUpperCase() || 'KL39N1510',
+      vehicleNumber: formData.vehicleNumber?.trim().toUpperCase() || (formData.vehicleType === 'Traveller 12 Seat' ? 'KL05AQ6500' : ''),
       vehicleType: formData.vehicleType || 'Sedan',
-      driverName: formData.driverName?.trim() || 'Driver',
+      driverName: formData.driverName?.trim() || '',
       driverPhone: formData.driverPhone?.trim() || '',
       tripRoute: formData.tripRoute?.trim() || 'Local / Outstation Trip',
       startingKm: Number(formData.startingKm) || 0,
@@ -538,6 +610,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
     };
 
     learnTripRoute(fullTrip.tripRoute, fullTrip.startingKm, fullTrip.closingKm, fullTrip.totalKm);
+    rememberFleetVehicle(fullTrip.vehicleNumber, fullTrip.vehicleType);
     onSaveTrip(fullTrip, true);
 
     const msg = generateWhatsAppMessage(fullTrip, companySettings);
@@ -568,10 +641,10 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
         extraNightAdded: duration.extraNightAdded,
         customerName: 'Rahul & Family',
         customerPhone: '+91 98470 12345',
-        vehicleNumber: 'KL39N1510',
+        vehicleNumber: '',
         vehicleType: 'SUV',
-        driverName: 'Suresh Kumar',
-        driverPhone: '+91 94471 88990',
+        driverName: '',
+        driverPhone: '',
         tripRoute: 'Cochin - Munnar - Thekkady - Cochin',
         startingKm: 45200,
         closingKm: 45880,
@@ -728,17 +801,9 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 {/* Customer Name with Smart Memory */}
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      Customer Name *
-                    </label>
-                    {recentCustomers.length > 0 && (
-                      <span className="text-[10px] text-blue-600 font-medium flex items-center">
-                        <Zap className="w-3 h-3 mr-0.5 text-blue-500" />
-                        {recentCustomers.length} saved
-                      </span>
-                    )}
-                  </div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                    Customer Name *
+                  </label>
                   <input
                     type="text"
                     required
@@ -767,9 +832,8 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
 
                 {/* Customer Phone / WhatsApp */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
-                    <span>Phone / WhatsApp</span>
-                    <span className="text-[10px] text-blue-600 font-medium normal-case">Direct Share Ready</span>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                    Phone / WhatsApp
                   </label>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -1128,12 +1192,6 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                 <h2 style={{ fontFamily: 'DM Sans, sans-serif' }} className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                   2. Vehicle & Driver Profile
                 </h2>
-                {recentVehicles.length > 0 && (
-                  <span className="text-[10px] text-blue-600 font-medium flex items-center">
-                    <Zap className="w-3 h-3 mr-0.5 text-blue-500" />
-                    {recentVehicles.length} fleet vehicles
-                  </span>
-                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1152,17 +1210,10 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                       sublabel: vp.sublabel || `₹${vp.defaultRatePerKm}/KM • ₹${vp.defaultDailyRate}/day`,
                     }))}
                   />
-                  {/* Dynamic Rate Sync Banner */}
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600 bg-blue-50/80 border border-blue-100 rounded-md px-2.5 py-1">
-                    <span className="font-semibold text-blue-800">
-                      Rates Synced:
-                    </span>
-                    <span className="font-medium text-slate-800">₹{formData.ratePerKm}/KM extra</span>
-                    <span className="text-blue-300">•</span>
-                    <span className="font-medium text-slate-800">₹{(formData.dailyPackageRate || 0).toLocaleString('en-IN')}/day</span>
-                    <span className="text-blue-300">•</span>
-                    <span className="font-medium text-slate-800">100 KM/day incl.</span>
-                  </div>
+                  {/* Default Rate Notice */}
+                  <p className="mt-1.5 text-[11px] text-slate-500">
+                    Default tariffs loaded. Rates can be adjusted or overridden manually below anytime.
+                  </p>
                 </div>
 
                 {/* Vehicle Number with Fleet Memory */}
@@ -1175,16 +1226,17 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                     required
                     id="input-vehicle-number"
                     list="vehicle-numbers-list"
-                    placeholder="e.g. KL39N1510"
+                    placeholder="e.g. KL05AQ6500"
                     value={formData.vehicleNumber || ''}
                     onChange={(e) => {
                       const val = e.target.value.toUpperCase();
                       handleChange('vehicleNumber', val);
-                      const match = recentVehicles.find(v => v.number.toLowerCase() === val.trim().toLowerCase());
+                      const cleanVal = val.replace(/\s+/g, '');
+                      const match = recentVehicles.find(v => v.number.replace(/\s+/g, '').toUpperCase() === cleanVal);
                       if (match) {
-                        if (match.type) handleVehicleTypeChange(match.type);
-                        if (match.driver && !formData.driverName) handleChange('driverName', match.driver);
-                        if (match.phone && !formData.driverPhone) handleChange('driverPhone', match.phone);
+                        if (match.type && match.type !== formData.vehicleType) {
+                          handleChange('vehicleType', match.type);
+                        }
                       }
                     }}
                     className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 font-mono font-bold tracking-wider uppercase"
@@ -1192,7 +1244,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                   <datalist id="vehicle-numbers-list">
                     {recentVehicles.map((v, idx) => (
                       <option key={idx} value={v.number}>
-                        {v.type} • {v.driver}
+                        {v.number === 'KL05AQ6500' ? 'Traveller (12 Seater)' : v.type}
                       </option>
                     ))}
                   </datalist>
@@ -1324,7 +1376,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
                     <span>Rate per Extra KM ({currency}) *</span>
-                    <span className="text-[10px] text-emerald-600 font-medium">Synced: ₹{formData.ratePerKm}/KM</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Editable</span>
                   </label>
                   <input
                     type="number"
@@ -1374,7 +1426,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
                     <span>Daily Rate ({currency})</span>
-                    <span className="text-[10px] text-blue-600 font-medium">Synced: ₹{formData.dailyPackageRate}/day</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Editable</span>
                   </label>
                   <input
                     type="number"
@@ -1393,7 +1445,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center justify-between">
                     <span>Driver Bata / Allowance ({currency})</span>
-                    <span className="text-[10px] text-emerald-600 font-medium">Synced: ₹{formData.driverBata}</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Editable</span>
                   </label>
                   <input
                     type="number"
@@ -1620,7 +1672,7 @@ export const DriverTripForm: React.FC<DriverTripFormProps> = ({
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md shadow-blue-500/20 flex items-center justify-center space-x-2 transition-colors cursor-pointer"
                 >
                   <FileText className="w-4 h-4" />
-                  <span>Sync & Preview Invoice</span>
+                  <span>Save & Preview Invoice</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 

@@ -11,6 +11,13 @@ import { CompanySettingsModal } from './components/CompanySettingsModal';
 import { GuestPortalView } from './components/GuestPortalView';
 import { PinLockScreen } from './components/PinLockScreen';
 import { StaffWorkspaceHub } from './components/StaffWorkspaceHub';
+import {
+  saveTripToCloud,
+  deleteTripFromCloud,
+  syncLocalTripsToCloud,
+  subscribeToCloudTrips,
+  testFirestoreConnection
+} from './services/firebase';
 
 export default function App() {
   // Staff Authentication PIN (2030) State
@@ -26,29 +33,41 @@ export default function App() {
   });
 
   // Active Staff Workspace Module ('hub' chooser vs 'invoice' system)
-  const [activeModule, setActiveModule] = useState<'hub' | 'invoice'>(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (
-        params.get('module') === 'invoice' || 
-        params.get('view') === 'invoice' ||
-        params.get('app') === 'invoice' ||
-        params.has('b') || 
-        params.has('bill') || 
-        params.has('d')
-      ) {
-        return 'invoice';
-      }
-    } catch {}
-    return 'hub';
-  });
+  const [activeModule, setActiveModule] = useState<'hub' | 'invoice'>('invoice');
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('syncing');
 
   // Local storage loaded state
   const [trips, setTrips] = useState<TripRecord[]>(() => {
     try {
+      // Purge test vehicle KL39N1510 from fleet memory if stored
+      const savedFleet = localStorage.getItem('tc_fleet_vehicles_v1');
+      if (savedFleet) {
+        const parsedFleet = JSON.parse(savedFleet);
+        const filteredFleet = parsedFleet.filter((f: any) => f.number?.replace(/\s+/g, '').toUpperCase() !== 'KL39N1510');
+        localStorage.setItem('tc_fleet_vehicles_v1', JSON.stringify(filteredFleet));
+      }
+
       const saved = localStorage.getItem('tc_invoices_trips');
       if (saved) {
-        return JSON.parse(saved);
+        const parsed: TripRecord[] = JSON.parse(saved);
+        // Clean out test value KL39N1510 from existing trips
+        const cleaned = parsed.map(t => {
+          if (t.vehicleNumber?.replace(/\s+/g, '').toUpperCase() === 'KL39N1510') {
+            return { ...t, vehicleNumber: '' };
+          }
+          return t;
+        });
+
+        // Ensure KL05AQ6500 Traveller trip is available if not yet added to stored trips
+        const hasTraveller = cleaned.some(t => t.vehicleNumber?.replace(/\s+/g, '').toUpperCase() === 'KL05AQ6500');
+        if (!hasTraveller) {
+          const travellerSample = sampleTrips.find(t => t.vehicleNumber === 'KL05AQ6500');
+          if (travellerSample) {
+            cleaned.push(travellerSample);
+          }
+        }
+        localStorage.setItem('tc_invoices_trips', JSON.stringify(cleaned));
+        return cleaned;
       }
     } catch (e) {
       console.error('Failed to load trips from local storage', e);
@@ -87,6 +106,10 @@ export default function App() {
         }
         if (!parsed.website) {
           parsed.website = 'travelcaretours.in';
+        }
+        // Update to new official UPI ID
+        if (!parsed.upiId || parsed.upiId === 'hashimhassan2@okhdfcbank') {
+          parsed.upiId = 'Vyapar.175694334138@hdfcbank';
         }
         return parsed;
       }
@@ -154,6 +177,81 @@ export default function App() {
     }
   }, [companySettings]);
 
+  // Cloud Firestore Multi-Device Sync (ensures TC-0005 and all bills sync to every device)
+  useEffect(() => {
+    let isMounted = true;
+
+    const initCloud = async () => {
+      try {
+        if (isMounted) setSyncStatus('syncing');
+        await testFirestoreConnection();
+        // Upload any local trips (such as user's original TC-0005 bill) to the cloud database
+        if (trips && trips.length > 0) {
+          await syncLocalTripsToCloud(trips);
+        }
+        if (isMounted) setSyncStatus('synced');
+      } catch (err) {
+        console.warn('Initial cloud sync notice:', err);
+        if (isMounted) setSyncStatus('offline');
+      }
+    };
+
+    initCloud();
+
+    // Real-time listener for bills created or modified on any device
+    const unsubscribe = subscribeToCloudTrips(
+      (cloudTrips) => {
+        if (!isMounted) return;
+        if (cloudTrips && cloudTrips.length > 0) {
+          setTrips((prevTrips) => {
+            const map = new Map<string, TripRecord>();
+
+            // 1. Add all cloud trips
+            cloudTrips.forEach((ct) => {
+              const key = (ct.billNo || ct.id).trim().toUpperCase();
+              map.set(key, ct);
+            });
+
+            // 2. Keep any local trip not yet in cloud and trigger background upload
+            prevTrips.forEach((lt) => {
+              const key = (lt.billNo || lt.id).trim().toUpperCase();
+              if (!map.has(key)) {
+                map.set(key, lt);
+                saveTripToCloud(lt).catch(() => {});
+              }
+            });
+
+            return Array.from(map.values()).sort((a, b) => {
+              const timeA = new Date(a.dateOfTrip || a.timestamp || 0).getTime();
+              const timeB = new Date(b.dateOfTrip || b.timestamp || 0).getTime();
+              return timeB - timeA;
+            });
+          });
+          setSyncStatus('synced');
+        }
+      },
+      (err) => {
+        console.warn('Cloud listener notice:', err);
+        if (isMounted) setSyncStatus('offline');
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const handleTriggerManualSync = async () => {
+    try {
+      setSyncStatus('syncing');
+      await syncLocalTripsToCloud(trips);
+      setSyncStatus('synced');
+    } catch {
+      setSyncStatus('error');
+    }
+  };
+
   // Next bill number calculation
   const nextBillNo = generateNextBillNo(trips, companySettings.invoicePrefix || 'TC-');
 
@@ -172,6 +270,15 @@ export default function App() {
 
     setSelectedTrip(savedTrip);
     setEditingTrip(null);
+
+    // Save to Cloud Firestore in real time for cross-device sync
+    setSyncStatus('syncing');
+    saveTripToCloud(savedTrip)
+      .then(() => setSyncStatus('synced'))
+      .catch((err) => {
+        console.error('Failed to save to Cloud Firestore:', err);
+        setSyncStatus('error');
+      });
 
     // If Google Sheet webhook is connected, sync silently (optional)
     if (companySettings.googleSheetWebhookUrl) {
@@ -201,19 +308,22 @@ export default function App() {
     const tripToArchive = trips.find(t => t.id === tripId);
     if (!tripToArchive) return;
 
-    if (confirm(`Move bill "${tripToArchive.billNo}" (${tripToArchive.customerName}) to Archive? You can restore it anytime from the Archive section.`)) {
-      const archivedRecord: TripRecord = {
-        ...tripToArchive,
-        archivedAt: new Date().toISOString(),
-      };
+    const archivedRecord: TripRecord = {
+      ...tripToArchive,
+      archivedAt: new Date().toISOString(),
+    };
 
-      setArchivedTrips(prev => [archivedRecord, ...prev]);
-      setTrips(prev => prev.filter(t => t.id !== tripId));
+    setArchivedTrips(prev => [archivedRecord, ...prev]);
+    setTrips(prev => prev.filter(t => t.id !== tripId));
 
-      if (selectedTrip?.id === tripId) {
-        setSelectedTrip(null);
-      }
+    if (selectedTrip?.id === tripId) {
+      setSelectedTrip(null);
     }
+
+    // Delete from active trips collection in Cloud Firestore
+    deleteTripFromCloud(tripToArchive.billNo || tripToArchive.id).catch((err) => {
+      console.warn('Cloud delete notice:', err);
+    });
   };
 
   // Handle Restore Trip from Archive
@@ -223,15 +333,20 @@ export default function App() {
 
     setTrips(prev => [tripToRestore, ...prev]);
     setArchivedTrips(prev => prev.filter(t => t.id !== tripId));
+    setSelectedTrip(tripToRestore);
+    setCurrentView('invoice');
+
+    // Restore to Cloud Firestore
+    saveTripToCloud(tripToRestore).catch((err) => {
+      console.warn('Cloud restore notice:', err);
+    });
   };
 
   // Handle Permanent Delete from Archive
   const handlePermanentDeleteTrip = (tripId: string) => {
-    if (confirm('Permanently delete this invoice from the Archive? This action cannot be undone.')) {
-      setArchivedTrips(prev => prev.filter(t => t.id !== tripId));
-      if (selectedTrip?.id === tripId) {
-        setSelectedTrip(null);
-      }
+    setArchivedTrips(prev => prev.filter(t => t.id !== tripId));
+    if (selectedTrip?.id === tripId) {
+      setSelectedTrip(null);
     }
   };
 
@@ -241,6 +356,11 @@ export default function App() {
     if (selectedTrip?.id === updatedTrip.id) {
       setSelectedTrip(updatedTrip);
     }
+
+    // Update in Cloud Firestore
+    saveTripToCloud(updatedTrip).catch((err) => {
+      console.warn('Cloud settlement save notice:', err);
+    });
 
     // If Google Sheet webhook is connected, sync the settlement update (optional)
     if (companySettings.googleSheetWebhookUrl) {
@@ -310,7 +430,7 @@ export default function App() {
       console.error('Storage error saving auth state', e);
     }
     setIsAuthenticated(true);
-    setActiveModule('hub');
+    setActiveModule('invoice');
   };
 
   // Handle Staff PIN Lock / Logout
@@ -387,6 +507,8 @@ export default function App() {
           setActiveModule('hub');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+        syncStatus={syncStatus}
+        onTriggerSync={handleTriggerManualSync}
       />
 
       {/* Main Content Areas */}

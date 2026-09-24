@@ -61,3 +61,5 @@ export interface EnquiryData {
   vehicleType: string;
   message: string;
 }
+
+export type { TripRecord } from '../invoice/src/types';

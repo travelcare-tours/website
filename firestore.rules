@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Customer Trips & Taxi Bills synchronized across devices
+    match /trips/{tripId} {
+      allow read: if true;
+      allow create: if request.resource.data.billNo is string &&
+                      request.resource.data.customerName is string;
+      allow update: if request.resource.data.billNo is string;
+      allow delete: if true;
+    }
+
+    // Company profile & invoice settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}

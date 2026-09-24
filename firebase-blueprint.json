@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "entities": {
+    "TripRecord": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "billNo": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "emailAddress": { "type": "string" },
+        "dateOfTrip": { "type": "string" },
+        "pickupDate": { "type": "string" },
+        "pickupTime": { "type": "string" },
+        "dropoffDate": { "type": "string" },
+        "dropoffTime": { "type": "string" },
+        "durationText": { "type": "string" },
+        "extraNightAdded": { "type": "boolean" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "numberOfDays": { "type": "number" },
+        "vehicleNumber": { "type": "string" },
+        "vehicleType": { "type": "string" },
+        "driverName": { "type": "string" },
+        "driverPhone": { "type": "string" },
+        "tripRoute": { "type": "string" },
+        "startingKm": { "type": "number" },
+        "closingKm": { "type": "number" },
+        "ratePerKm": { "type": "number" },
+        "includedKm": { "type": "number" },
+        "dailyPackageRate": { "type": "number" },
+        "driverBata": { "type": "number" },
+        "tollParkingPermit": { "type": "number" },
+        "otherCharges": { "type": "number" },
+        "advanceReceived": { "type": "number" },
+        "paymentMode": { "type": "string" },
+        "remarks": { "type": "string" },
+        "adjustment": { "type": "number" },
+        "totalKm": { "type": "number" },
+        "additionalKm": { "type": "number" },
+        "additionalKmAmount": { "type": "number" },
+        "vehicleHire": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "balanceAmount": { "type": "number" },
+        "documentMergeStatus": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["billNo", "customerName", "vehicleType", "totalAmount"]
+    },
+    "CompanySettings": {
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "companySub": { "type": "string" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "taxNo": { "type": "string" },
+        "website": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/trips/{tripId}": {
+      "entity": "TripRecord",
+      "description": "Cross-device synchronized customer trip bills and invoices for Travel Care"
+    },
+    "/settings/{settingId}": {
+      "entity": "CompanySettings",
+      "description": "Travel Care company invoice details and contact settings"
+    }
+  }
+}

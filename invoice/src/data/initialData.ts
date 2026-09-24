@@ -8,11 +8,11 @@ export const defaultCompanySettings: CompanySettings = {
   website: 'travelcaretours.in',
   address: 'Ground Flr, Mannath Bld, 36/267. Seaport-Airport Rd, Thrikkakara Ernakulam, Kerala',
   gstNo: '32AAAAA0000A1Z5',
-  upiId: 'hashimhassan2@okhdfcbank',
+  upiId: 'Vyapar.175694334138@hdfcbank',
   upiName: 'Travel Care Tours Pvt Ltd',
   currencySymbol: '₹',
   invoicePrefix: 'TC-',
-  nextInvoiceNumber: 4,
+  nextInvoiceNumber: 5,
   termsAndConditions: [
     'Toll, Parking, Interstate Permits & Entry tickets are as per actual receipts.',
     'Driver Bata is applicable for outstation duty & overnight halt.',
@@ -36,7 +36,7 @@ export const sampleTrips: TripRecord[] = [
     customerName: 'Hashim',
     customerPhone: '+91 98470 54321',
     numberOfDays: 7,
-    vehicleNumber: 'KL39N1510',
+    vehicleNumber: '',
     vehicleType: 'SUV',
     driverName: 'Driver 1',
     driverPhone: '+91 94471 00001',
@@ -148,6 +148,45 @@ export const sampleTrips: TripRecord[] = [
     linkToMergedDoc: 'TC-0003 Testing',
     documentMergeStatus: 'Document successfully created; PDF created',
     mergedDocUrl: 'https://drive.google.com/file/d/1G-jmFkVjnGZI-_vQ3fnsqAS4L_hRF1_e/view?usp=drivesdk'
+  },
+  {
+    id: 'tc-0004',
+    timestamp: '8/14/2026 10:15:00',
+    emailAddress: 'travelcare598@gmail.com',
+    dateOfTrip: '2026-08-14',
+    pickupDate: '2026-08-14',
+    pickupTime: '07:00',
+    dropoffDate: '2026-08-18',
+    dropoffTime: '21:00',
+    durationText: '5 Days / 4 Nights',
+    customerName: 'Praveen Nair & Family (Group)',
+    customerPhone: '+91 98471 22334',
+    numberOfDays: 5,
+    vehicleNumber: 'KL05AQ6500',
+    vehicleType: 'Traveller 12 Seat',
+    driverName: '',
+    driverPhone: '',
+    tripRoute: 'Kochi - Munnar - Thekkady - Alleppey Houseboat - Kochi',
+    startingKm: 42100,
+    closingKm: 42720,
+    ratePerKm: 25,
+    includedKm: 500,
+    dailyPackageRate: 4000,
+    driverBata: 4000,
+    tollParkingPermit: 600,
+    otherCharges: 0,
+    advanceReceived: 10000,
+    paymentMode: 'UPI',
+    remarks: '12-Seater Tempo Traveller holiday tour package',
+    billNo: 'TC-0004',
+    adjustment: 0,
+    totalKm: 620,
+    additionalKm: 120,
+    additionalKmAmount: 3000,
+    vehicleHire: 20000,
+    totalAmount: 27600,
+    balanceAmount: 17600,
+    documentMergeStatus: 'Generated in App'
   }
 ];
 
@@ -161,9 +200,34 @@ export const commonRoutes = [
   'Local Sightseeing & City Run (8 Hrs / 80 KM)'
 ];
 
+export interface FleetVehicle {
+  number: string;
+  type: string;
+  label?: string;
+}
+
+export const defaultFleetVehicles: FleetVehicle[] = [
+  {
+    number: 'KL05AQ6500',
+    type: 'Traveller 12 Seat',
+    label: 'Traveller (12 Seater)'
+  },
+  {
+    number: 'KL41K1069',
+    type: 'Sedan',
+    label: 'Dzire / Sedan'
+  },
+  {
+    number: 'KL70C4754',
+    type: 'Sedan',
+    label: 'Etios / Sedan'
+  }
+];
+
 export interface VehiclePreset {
   type: string;
   label?: string;
+  defaultRegNo?: string;
   defaultRatePerKm: number;
   defaultDailyRate: number;
   defaultIncludedKm: number;
@@ -176,6 +240,7 @@ export const vehiclePresets: VehiclePreset[] = [
   {
     type: 'Sedan',
     label: 'Sedan',
+    defaultRegNo: 'KL41K1069',
     defaultRatePerKm: 18,
     defaultDailyRate: 2200,
     defaultIncludedKm: 100,
@@ -196,6 +261,7 @@ export const vehiclePresets: VehiclePreset[] = [
   {
     type: 'Traveller 12 Seat',
     label: 'Traveller 12 Seat',
+    defaultRegNo: 'KL05AQ6500',
     defaultRatePerKm: 25,
     defaultDailyRate: 4000,
     defaultIncludedKm: 100,

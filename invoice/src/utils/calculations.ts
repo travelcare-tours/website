@@ -282,11 +282,27 @@ export function decodeTripFromUrl(encoded: string): TripRecord | null {
   }
 }
 
-export function generateGuestShareUrl(trip: TripRecord): string {
+export function generateGuestShareUrl(trip: TripRecord, preferredBaseUrl?: string): string {
   if (typeof window === 'undefined') return '';
-  const origin = window.location.origin + window.location.pathname;
+  
+  let baseUrl = '';
+  if (preferredBaseUrl && preferredBaseUrl.trim()) {
+    baseUrl = preferredBaseUrl.trim();
+    if (!baseUrl.startsWith('http')) {
+      baseUrl = `https://${baseUrl}`;
+    }
+  } else if (window.location.hostname.includes('travelcaretours.in')) {
+    baseUrl = `${window.location.origin}${window.location.pathname}`;
+  } else if (window.location.hostname.includes('run.app') || window.location.hostname === 'localhost') {
+    // When sharing from preview/development, automatically use official custom domain
+    baseUrl = 'https://travelcaretours.in/invoice/';
+  } else {
+    baseUrl = `${window.location.origin}${window.location.pathname}`;
+  }
+
+  const cleanBase = baseUrl.replace(/\/+$/, '') + '/';
   const encodedData = encodeTripToUrl(trip);
-  return `${origin}?b=${encodeURIComponent(trip.billNo)}&d=${encodedData}`;
+  return `${cleanBase}?b=${encodeURIComponent(trip.billNo)}&d=${encodedData}`;
 }
 
 export function generateWhatsAppMessage(trip: TripRecord, settings: CompanySettings, includeLink: boolean = true): string {
@@ -297,7 +313,10 @@ export function generateWhatsAppMessage(trip: TripRecord, settings: CompanySetti
     ? `🗓️ *Schedule:* ${trip.pickupDate} (${trip.pickupTime || '08:00'}) to ${trip.dropoffDate || trip.pickupDate} (${trip.dropoffTime || '20:00'})\n⏳ *Duration:* ${durationDesc}`
     : `🗓️ *Duration:* ${durationDesc}`;
 
-  const guestUrl = includeLink ? generateGuestShareUrl(trip) : '';
+  const customWebsiteBase = settings.website 
+    ? `https://${settings.website.replace(/^https?:\/\//, '').replace(/\/+$/, '')}/invoice/` 
+    : 'https://travelcaretours.in/invoice/';
+  const guestUrl = includeLink ? generateGuestShareUrl(trip, customWebsiteBase) : '';
 
   return `🚕 *${settings.companyName} - Trip Invoice*
 ---------------------------------------

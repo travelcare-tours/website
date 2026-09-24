@@ -13,7 +13,9 @@ import {
   X,
   ChevronRight,
   Car,
-  LayoutGrid
+  LayoutGrid,
+  Cloud,
+  RefreshCw
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -24,6 +26,8 @@ interface NavbarProps {
   onExportCsv: () => void;
   onLock?: () => void;
   onReturnToHub?: () => void;
+  syncStatus?: 'synced' | 'syncing' | 'offline' | 'error';
+  onTriggerSync?: () => void;
 }
 
 export const Navbar = ({
@@ -33,6 +37,8 @@ export const Navbar = ({
   totalTripsCount,
   onLock,
   onReturnToHub,
+  syncStatus = 'synced',
+  onTriggerSync
 }: NavbarProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -129,6 +135,44 @@ export const Navbar = ({
 
             <div className="h-6 lg:h-7 w-px bg-slate-800"></div>
 
+            {/* Real-time Cloud Multi-Device Sync Indicator */}
+            <div 
+              onClick={onTriggerSync}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none ${
+                syncStatus === 'syncing'
+                  ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                  : syncStatus === 'error'
+                  ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                  : syncStatus === 'offline'
+                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+              }`}
+              title="Cloud Sync Active: All customer bills sync automatically across all devices in real-time."
+            >
+              {syncStatus === 'syncing' ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+                  <span className="hidden xl:inline">Syncing...</span>
+                </>
+              ) : syncStatus === 'offline' ? (
+                <>
+                  <Cloud className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden xl:inline">Offline</span>
+                </>
+              ) : syncStatus === 'error' ? (
+                <>
+                  <Cloud className="w-3.5 h-3.5 text-rose-400" />
+                  <span className="hidden xl:inline">Sync Error</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden xl:inline">Cloud Synced</span>
+                </>
+              )}
+            </div>
+
             {/* Settings Button */}
             <button
               id="nav-btn-settings"
@@ -144,19 +188,6 @@ export const Navbar = ({
               <span>Settings</span>
             </button>
 
-            {/* Switch to Workspace Hub */}
-            {onReturnToHub && (
-              <button
-                id="nav-btn-workspace-hub"
-                onClick={onReturnToHub}
-                title="Return to Workspace Hub (Itinerary Planner & Chooser)"
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 lg:px-3.5 py-1.5 lg:py-2 rounded-xl text-xs font-bold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-750 border border-slate-700/90 transition-all cursor-pointer whitespace-nowrap shadow-xs"
-              >
-                <LayoutGrid className="w-3.5 h-3.5 text-blue-400" />
-                <span>Workspace Hub</span>
-              </button>
-            )}
-
             {/* Lock / Exit Staff Portal Button */}
             {onLock && (
               <button
@@ -171,21 +202,8 @@ export const Navbar = ({
             )}
           </div>
 
-          {/* Mobile Right Controls: New Trip (+), Hub Icon, Lock Icon, and Menu Hamburger */}
+          {/* Mobile Right Controls: New Trip (+), Lock Icon, and Menu Hamburger */}
           <div className="flex md:hidden items-center space-x-2">
-            {/* Direct Hub Icon on Mobile */}
-            {onReturnToHub && (
-              <button
-                id="mobile-btn-hub"
-                onClick={onReturnToHub}
-                title="Workspace Hub"
-                className="p-2 sm:p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-750 border border-slate-700 transition-all cursor-pointer flex items-center justify-center"
-                aria-label="Workspace Hub"
-              >
-                <LayoutGrid className="w-4 h-4 text-blue-400" />
-              </button>
-            )}
-
             {/* Direct + Icon for New Trip */}
             <button
               id="mobile-btn-new-trip"
@@ -231,34 +249,61 @@ export const Navbar = ({
         </div>
       </div>
 
-      {/* Modern, Streamlined Mobile Menu Dropdown (Cleaned of duplicates) */}
+      {/* Modern, Streamlined Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-slate-800 bg-slate-900/98 backdrop-blur-xl px-4 py-3.5 space-y-2 shadow-2xl animate-in slide-in-from-top-2 duration-150">
           <div className="flex items-center justify-between px-2 pt-0.5 pb-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               Staff Portal Views
             </span>
-            <span className="text-[10px] text-slate-500 font-mono">
-              Travel Care Tours
-            </span>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <Cloud className="w-3 h-3 text-emerald-400" />
+              <span>Multi-Device Cloud Sync</span>
+            </div>
           </div>
 
-          {/* Switch to Workspace Hub (Chooser) */}
-          {onReturnToHub && (
+          {/* Active Invoice (Placed BEFORE Trip Records & Ledger) */}
+          {selectedTrip ? (
             <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onReturnToHub();
-              }}
-              className="w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all cursor-pointer bg-slate-800/90 hover:bg-slate-750 text-slate-200 border border-slate-700 shadow-xs"
+              onClick={() => handleNavClick('invoice')}
+              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                currentView === 'invoice'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
+              }`}
             >
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-600/20 text-blue-400 border border-blue-500/30">
-                  <LayoutGrid className="w-4 h-4" />
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  currentView === 'invoice' ? 'bg-blue-700 text-white' : 'bg-slate-700/80 text-amber-400'
+                }`}>
+                  <FileText className="w-4 h-4" />
                 </div>
                 <div className="text-left">
-                  <div className="font-bold text-xs text-white">Switch to Workspace Hub</div>
-                  <div className="text-[11px] text-slate-400">Itinerary Planner &amp; Billing</div>
+                  <div className="font-bold text-xs">Active Invoice ({selectedTrip.billNo})</div>
+                  <div className={`text-[11px] ${currentView === 'invoice' ? 'text-blue-100' : 'text-slate-400'}`}>
+                    {selectedTrip.customerName} • Preview & Share
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 opacity-60" />
+            </button>
+          ) : (
+            <button
+              onClick={() => handleNavClick('invoice')}
+              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                currentView === 'invoice'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-700/80 text-amber-400">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-xs">Active Invoice</div>
+                  <div className="text-[11px] text-slate-400">Preview & Share bill</div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 opacity-60" />
@@ -294,33 +339,6 @@ export const Navbar = ({
             </div>
             <ChevronRight className="w-4 h-4 opacity-60" />
           </button>
-
-          {/* Selected Trip Invoice (if active) */}
-          {selectedTrip && (
-            <button
-              onClick={() => handleNavClick('invoice')}
-              className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                currentView === 'invoice'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                  : 'bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700/60'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  currentView === 'invoice' ? 'bg-blue-700 text-white' : 'bg-slate-700/80 text-amber-400'
-                }`}>
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="text-left">
-                  <div className="font-bold text-xs">Active Invoice ({selectedTrip.billNo})</div>
-                  <div className={`text-[11px] ${currentView === 'invoice' ? 'text-blue-100' : 'text-slate-400'}`}>
-                    {selectedTrip.customerName} • Preview & Share
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 opacity-60" />
-            </button>
-          )}
 
           {/* Fleet Insights */}
           <button
