@@ -15,6 +15,8 @@ import {
   Car,
   LayoutGrid,
   Cloud,
+  CloudOff,
+  AlertCircle,
   RefreshCw
 } from 'lucide-react';
 
@@ -53,20 +55,35 @@ export const Navbar = ({
         {/* Responsive Header Height */}
         <div className="flex items-center justify-between h-16 sm:h-18 lg:h-20">
           
-          {/* Plain White Logo as given in the footer of the main webpage */}
-          <div 
-            className="flex items-center gap-2.5 sm:gap-3.5 cursor-pointer select-none group py-1" 
-            onClick={() => handleNavClick('create')}
-            title="Travel Care Tours - Trip Billing & Invoicing"
-          >
-            <TravelCareLogo 
-              variant="white" 
-              className="h-9 sm:h-11 lg:h-13 w-auto transition-transform group-hover:scale-[1.02]" 
-            />
-            <div className="hidden sm:block border-l border-slate-700/80 pl-2.5 sm:pl-3">
-              <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 tracking-wider uppercase block">
-                Trip Billing & Invoicing
-              </span>
+          {/* Left Brand Area & Workspace Hub Quick Access Button (Logo only, without text) */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {onReturnToHub && (
+              <button
+                id="nav-btn-hub-quick"
+                onClick={onReturnToHub}
+                title="Return to Workspace Hub (Operations & Planner)"
+                aria-label="Workspace Hub"
+                className="p-2 sm:p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/90 hover:border-blue-500/50 transition-all cursor-pointer flex items-center justify-center group shadow-xs active:scale-95 shrink-0"
+              >
+                <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 group-hover:scale-110 transition-transform" />
+              </button>
+            )}
+
+            {/* Plain White Logo as given in the footer of the main webpage */}
+            <div 
+              className="flex items-center gap-2.5 sm:gap-3.5 cursor-pointer select-none group py-1" 
+              onClick={() => onReturnToHub ? onReturnToHub() : handleNavClick('create')}
+              title="Travel Care Tours - Workspace Hub"
+            >
+              <TravelCareLogo 
+                variant="white" 
+                className="h-9 sm:h-11 lg:h-13 w-auto transition-transform group-hover:scale-[1.02]" 
+              />
+              <div className="hidden sm:block border-l border-slate-700/80 pl-2.5 sm:pl-3">
+                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 tracking-wider uppercase block">
+                  Trip Billing & Invoicing
+                </span>
+              </div>
             </div>
           </div>
 
@@ -135,43 +152,56 @@ export const Navbar = ({
 
             <div className="h-6 lg:h-7 w-px bg-slate-800"></div>
 
-            {/* Real-time Cloud Multi-Device Sync Indicator */}
-            <div 
+            {/* Real-time Cloud Multi-Device Sync Indicator (Icon Only, No Text) */}
+            <button
+              id="nav-btn-cloud-sync"
               onClick={onTriggerSync}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer select-none ${
+              title={
                 syncStatus === 'syncing'
-                  ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                  ? 'Syncing with cloud...'
                   : syncStatus === 'error'
-                  ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                  ? 'Cloud sync error - click to retry'
                   : syncStatus === 'offline'
-                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  ? 'Offline - click to reconnect'
+                  : 'Cloud Synced: All bills sync automatically across all devices. Click to refresh.'
+              }
+              aria-label="Cloud Sync Status"
+              className={`p-1.5 lg:p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center shrink-0 shadow-xs active:scale-95 ${
+                syncStatus === 'syncing'
+                  ? 'bg-blue-500/15 text-blue-400 border-blue-500/30 hover:bg-blue-500/25'
+                  : syncStatus === 'error'
+                  ? 'bg-rose-500/15 text-rose-400 border-rose-500/30 hover:bg-rose-500/25'
+                  : syncStatus === 'offline'
+                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/30 hover:bg-amber-500/25'
+                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
               }`}
-              title="Cloud Sync Active: All customer bills sync automatically across all devices in real-time."
             >
               {syncStatus === 'syncing' ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 text-blue-400 animate-spin" />
-                  <span className="hidden xl:inline">Syncing...</span>
-                </>
+                <RefreshCw className="w-4 h-4 text-blue-400 animate-spin" />
               ) : syncStatus === 'offline' ? (
-                <>
-                  <Cloud className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden xl:inline">Offline</span>
-                </>
+                <CloudOff className="w-4 h-4 text-amber-400" />
               ) : syncStatus === 'error' ? (
-                <>
-                  <Cloud className="w-3.5 h-3.5 text-rose-400" />
-                  <span className="hidden xl:inline">Sync Error</span>
-                </>
+                <AlertCircle className="w-4 h-4 text-rose-400" />
               ) : (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <Cloud className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="hidden xl:inline">Cloud Synced</span>
-                </>
+                <div className="relative flex items-center justify-center">
+                  <Cloud className="w-4 h-4 text-emerald-400" />
+                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                </div>
               )}
-            </div>
+            </button>
+
+            {/* Desktop Right Quick Access to Workspace Hub (Logo Only, No Text) */}
+            {onReturnToHub && (
+              <button
+                id="nav-btn-hub-desktop-right"
+                onClick={onReturnToHub}
+                title="Return to Workspace Hub"
+                aria-label="Workspace Hub"
+                className="p-1.5 lg:p-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 hover:border-blue-500/50 transition-all cursor-pointer flex items-center justify-center shadow-xs active:scale-95 shrink-0"
+              >
+                <LayoutGrid className="w-4 h-4 text-blue-400" />
+              </button>
+            )}
 
             {/* Settings Button */}
             <button
@@ -202,8 +232,21 @@ export const Navbar = ({
             )}
           </div>
 
-          {/* Mobile Right Controls: New Trip (+), Lock Icon, and Menu Hamburger */}
-          <div className="flex md:hidden items-center space-x-2">
+          {/* Mobile Right Controls: Hub Quick Access, New Trip (+), Lock Icon, and Menu Hamburger */}
+          <div className="flex md:hidden items-center space-x-1.5 sm:space-x-2">
+            {/* Quick Access to Workspace Hub on Mobile (Logo Only, No Text) */}
+            {onReturnToHub && (
+              <button
+                id="mobile-btn-hub"
+                onClick={onReturnToHub}
+                title="Return to Workspace Hub"
+                aria-label="Workspace Hub"
+                className="p-2 sm:p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700/90 hover:border-blue-500/50 transition-all cursor-pointer flex items-center justify-center active:scale-95 shrink-0"
+              >
+                <LayoutGrid className="w-5 h-5 text-blue-400" />
+              </button>
+            )}
+
             {/* Direct + Icon for New Trip */}
             <button
               id="mobile-btn-new-trip"
@@ -262,6 +305,28 @@ export const Navbar = ({
               <span>Multi-Device Cloud Sync</span>
             </div>
           </div>
+
+          {/* Quick Access back to Workspace Hub in Mobile Drawer */}
+          {onReturnToHub && (
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onReturnToHub();
+              }}
+              className="w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold bg-blue-600/10 hover:bg-blue-600/20 text-blue-200 border border-blue-500/30 transition-all cursor-pointer"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  <LayoutGrid className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <div className="font-bold text-xs text-white">Workspace Hub</div>
+                  <div className="text-[11px] text-blue-300">Operations &amp; Itinerary Planner</div>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-blue-400 opacity-80" />
+            </button>
+          )}
 
           {/* Active Invoice (Placed BEFORE Trip Records & Ledger) */}
           {selectedTrip ? (

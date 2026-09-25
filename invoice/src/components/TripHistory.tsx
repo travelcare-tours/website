@@ -33,7 +33,8 @@ import {
   Database,
   Smartphone,
   MoreVertical,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
 
 interface TripHistoryProps {
@@ -81,7 +82,7 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
     id: string;
     billNo: string;
     customerName: string;
-    type: 'archive' | 'permanent';
+    type: 'active' | 'permanent' | 'archive';
   } | null>(null);
   const actionMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -129,6 +130,10 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
 
     return matchesSearch && matchesStatus && matchesVehicle;
   });
+
+  // Filter count helpers
+  const pendingCount = displayedSourceList.filter(t => (t.balanceAmount || 0) > 0 && t.status !== 'closed').length;
+  const settledCount = displayedSourceList.filter(t => t.status === 'closed' || (t.balanceAmount || 0) <= 0).length;
 
   // High-level ledger calculations for active trips
   const totalRevenue = trips.reduce((acc, t) => acc + (t.totalAmount || 0), 0);
@@ -276,36 +281,68 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
         </div>
       </div>
 
-      {/* Control Bar: Search & Filters */}
+      {/* Control Bar: Search & Quick Filters */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         {/* Search */}
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
           <input
             type="text"
-            placeholder="Search by customer, bill no, driver, route, vehicle..."
+            placeholder="Search customer, bill no, driver, route, vehicle..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+            className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+              title="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        {/* Filters */}
+        {/* Quick Filter Pills & Dropdowns */}
         <div className="flex items-center flex-wrap gap-2">
-          <div className="min-w-[160px]">
-            <CustomDropdown
-              value={filterStatus}
-              onChange={(val) => setFilterStatus(val as any)}
-              options={[
-                { value: 'all', label: 'All Payment Status' },
-                { value: 'pending', label: 'Pending Balance', sublabel: 'Outstanding due' },
-                { value: 'closed', label: 'Closed / Settled', sublabel: 'Paid in full' },
-              ]}
-              triggerClassName="px-3 py-1.5 text-xs bg-white hover:bg-slate-50 border border-slate-300 rounded-lg font-semibold text-slate-700 shadow-2xs"
-            />
+          {/* Quick Status Buttons */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+            <button
+              onClick={() => setFilterStatus('all')}
+              className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                filterStatus === 'all'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              All ({displayedSourceList.length})
+            </button>
+            <button
+              onClick={() => setFilterStatus('pending')}
+              className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                filterStatus === 'pending'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'text-amber-700 hover:text-amber-900'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              Due ({pendingCount})
+            </button>
+            <button
+              onClick={() => setFilterStatus('closed')}
+              className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                filterStatus === 'closed'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-emerald-700 hover:text-emerald-900'
+              }`}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              Settled ({settledCount})
+            </button>
           </div>
 
-          <div className="min-w-[140px]">
+          <div className="min-w-[130px]">
             <CustomDropdown
               value={filterVehicle}
               onChange={(val) => setFilterVehicle(String(val))}
@@ -451,11 +488,11 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
                               id: trip.id,
                               billNo: trip.billNo,
                               customerName: trip.customerName,
-                              type: 'archive'
+                              type: 'active'
                             })}
-                            title="Move to Archive"
+                            title="Delete or Move to Archive"
                             className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors cursor-pointer flex items-center justify-center"
-                            aria-label="Move to Archive"
+                            aria-label="Delete or Move to Archive"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -615,7 +652,7 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
                       {/* Action Buttons: Decluttered & Elegant */}
                       <td className="py-3.5 px-4 text-right">
                         {activeViewTab === 'active' ? (
-                          <div className="flex items-center justify-end space-x-1.5 relative">
+                          <div className="flex items-center justify-end space-x-1.5">
                             {/* Primary Invoice View */}
                             <button
                               onClick={() => onSelectTrip(trip)}
@@ -638,64 +675,40 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
                               </button>
                             )}
 
-                            {/* Dropdown More Menu Button */}
-                            <div className="relative">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActionMenuTripId(isMenuOpen ? null : trip.id);
-                                }}
-                                title="More options"
-                                className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer"
-                              >
-                                <MoreVertical className="w-3.5 h-3.5" />
-                              </button>
+                            {/* Share on WhatsApp & Online */}
+                            <button
+                              onClick={() => setShareTripModal(trip)}
+                              title="Share Invoice on WhatsApp / Online Link"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 transition-colors cursor-pointer"
+                              aria-label="Share Invoice"
+                            >
+                              <Share2 className="w-3.5 h-3.5 text-blue-500" />
+                            </button>
 
-                              {/* Dropdown Card */}
-                              {isMenuOpen && (
-                                <div 
-                                  ref={actionMenuRef}
-                                  className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-30 text-left animate-in fade-in zoom-in-95 duration-100"
-                                >
-                                  <button
-                                    onClick={() => {
-                                      setActionMenuTripId(null);
-                                      setShareTripModal(trip);
-                                    }}
-                                    className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                                  >
-                                    <Share2 className="w-3.5 h-3.5 text-blue-500" />
-                                    <span>Share & WhatsApp</span>
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setActionMenuTripId(null);
-                                      onEditTrip(trip);
-                                    }}
-                                    className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
-                                  >
-                                    <Edit className="w-3.5 h-3.5 text-slate-600" />
-                                    <span>Edit Trip Details</span>
-                                  </button>
-                                  <div className="my-1 border-t border-slate-100"></div>
-                                  <button
-                                    onClick={() => {
-                                      setActionMenuTripId(null);
-                                      setTripToDelete({
-                                        id: trip.id,
-                                        billNo: trip.billNo,
-                                        customerName: trip.customerName,
-                                        type: 'archive'
-                                      });
-                                    }}
-                                    className="w-full px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                    <span>Move to Archive</span>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                            {/* Edit Trip */}
+                            <button
+                              onClick={() => onEditTrip(trip)}
+                              title="Edit Trip Details"
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer"
+                              aria-label="Edit Trip"
+                            >
+                              <Edit className="w-3.5 h-3.5 text-slate-600" />
+                            </button>
+
+                            {/* Delete / Move to Archive */}
+                            <button
+                              onClick={() => setTripToDelete({
+                                id: trip.id,
+                                billNo: trip.billNo,
+                                customerName: trip.customerName,
+                                type: 'active'
+                              })}
+                              title="Delete from Database or Move to Archive"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-300 transition-colors cursor-pointer"
+                              aria-label="Delete Trip"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                            </button>
                           </div>
                         ) : (
                           <div className="flex items-center justify-end space-x-1.5">
@@ -800,7 +813,7 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
         />
       )}
 
-      {/* Mobile-Friendly In-App Delete & Archive Confirmation Modal */}
+      {/* In-App Delete & Archive Confirmation Modal */}
       {tripToDelete && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
@@ -809,14 +822,14 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
         >
           <div className="bg-white rounded-2xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                tripToDelete.type === 'permanent' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-700'
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                tripToDelete.type === 'permanent' ? 'bg-rose-100 text-rose-600' : 'bg-rose-50 text-rose-600'
               }`}>
                 <Trash2 className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  {tripToDelete.type === 'permanent' ? 'Delete Permanently?' : 'Move to Archive?'}
+                  {tripToDelete.type === 'permanent' ? 'Delete Permanently?' : 'Delete or Archive Invoice?'}
                 </h3>
                 <p className="text-xs text-slate-500 font-mono">
                   {tripToDelete.billNo} • {tripToDelete.customerName}
@@ -826,37 +839,64 @@ export const TripHistory: React.FC<TripHistoryProps> = ({
 
             <p className="text-xs text-slate-600 leading-relaxed">
               {tripToDelete.type === 'permanent'
-                ? 'This invoice record will be permanently deleted from the database. This action cannot be undone.'
-                : 'This invoice will be moved to the Archive tab. You can view or restore it anytime.'}
+                ? 'This invoice record will be permanently erased from Cloud Firestore and local storage. This action cannot be undone.'
+                : 'Choose whether to permanently erase this bill from the database or safely move it to the Archive / Recycle Bin.'}
             </p>
 
-            <div className="flex items-center gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setTripToDelete(null)}
-                className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (tripToDelete.type === 'permanent') {
+            {tripToDelete.type === 'active' || tripToDelete.type === 'archive' ? (
+              <div className="space-y-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
                     onPermanentDeleteTrip(tripToDelete.id);
-                  } else {
+                    setTripToDelete(null);
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete from Database</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     onDeleteTrip(tripToDelete.id);
-                  }
-                  setTripToDelete(null);
-                }}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-white transition-colors cursor-pointer shadow-sm ${
-                  tripToDelete.type === 'permanent'
-                    ? 'bg-rose-600 hover:bg-rose-700'
-                    : 'bg-rose-600 hover:bg-rose-700'
-                }`}
-              >
-                {tripToDelete.type === 'permanent' ? 'Delete Forever' : 'Move to Archive'}
-              </button>
-            </div>
+                    setTripToDelete(null);
+                  }}
+                  className="w-full py-2 px-4 rounded-xl text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Archive className="w-4 h-4 text-amber-600" />
+                  <span>Move to Archive (Recycle Bin)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTripToDelete(null)}
+                  className="w-full py-2 px-4 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setTripToDelete(null)}
+                  className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPermanentDeleteTrip(tripToDelete.id);
+                    setTripToDelete(null);
+                  }}
+                  className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete Forever</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -16,7 +16,9 @@ import {
   deleteTripFromCloud,
   syncLocalTripsToCloud,
   subscribeToCloudTrips,
-  testFirestoreConnection
+  testFirestoreConnection,
+  markBillAsDeleted,
+  getDeletedBills
 } from './services/firebase';
 
 export default function App() {
@@ -33,7 +35,7 @@ export default function App() {
   });
 
   // Active Staff Workspace Module ('hub' chooser vs 'invoice' system)
-  const [activeModule, setActiveModule] = useState<'hub' | 'invoice'>('invoice');
+  const [activeModule, setActiveModule] = useState<'hub' | 'invoice'>('hub');
   const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('syncing');
 
   // Local storage loaded state
@@ -50,29 +52,17 @@ export default function App() {
       const saved = localStorage.getItem('tc_invoices_trips');
       if (saved) {
         const parsed: TripRecord[] = JSON.parse(saved);
-        // Clean out test value KL39N1510 from existing trips
-        const cleaned = parsed.map(t => {
-          if (t.vehicleNumber?.replace(/\s+/g, '').toUpperCase() === 'KL39N1510') {
-            return { ...t, vehicleNumber: '' };
-          }
-          return t;
+        const deletedBills = getDeletedBills();
+        const active = parsed.filter(t => {
+          const key = (t.billNo || t.id).trim().toUpperCase();
+          return !deletedBills.has(key) && !deletedBills.has((t.id || '').toUpperCase());
         });
-
-        // Ensure KL05AQ6500 Traveller trip is available if not yet added to stored trips
-        const hasTraveller = cleaned.some(t => t.vehicleNumber?.replace(/\s+/g, '').toUpperCase() === 'KL05AQ6500');
-        if (!hasTraveller) {
-          const travellerSample = sampleTrips.find(t => t.vehicleNumber === 'KL05AQ6500');
-          if (travellerSample) {
-            cleaned.push(travellerSample);
-          }
-        }
-        localStorage.setItem('tc_invoices_trips', JSON.stringify(cleaned));
-        return cleaned;
+        return active;
       }
     } catch (e) {
       console.error('Failed to load trips from local storage', e);
     }
-    return sampleTrips;
+    return [];
   });
 
   const [archivedTrips, setArchivedTrips] = useState<TripRecord[]>(() => {
@@ -202,33 +192,14 @@ export default function App() {
     const unsubscribe = subscribeToCloudTrips(
       (cloudTrips) => {
         if (!isMounted) return;
-        if (cloudTrips && cloudTrips.length > 0) {
-          setTrips((prevTrips) => {
-            const map = new Map<string, TripRecord>();
+        const deletedBills = getDeletedBills();
+        const activeTrips = (cloudTrips || []).filter((ct) => {
+          const key = (ct.billNo || ct.id).trim().toUpperCase();
+          return !deletedBills.has(key) && !deletedBills.has((ct.id || '').toUpperCase());
+        });
 
-            // 1. Add all cloud trips
-            cloudTrips.forEach((ct) => {
-              const key = (ct.billNo || ct.id).trim().toUpperCase();
-              map.set(key, ct);
-            });
-
-            // 2. Keep any local trip not yet in cloud and trigger background upload
-            prevTrips.forEach((lt) => {
-              const key = (lt.billNo || lt.id).trim().toUpperCase();
-              if (!map.has(key)) {
-                map.set(key, lt);
-                saveTripToCloud(lt).catch(() => {});
-              }
-            });
-
-            return Array.from(map.values()).sort((a, b) => {
-              const timeA = new Date(a.dateOfTrip || a.timestamp || 0).getTime();
-              const timeB = new Date(b.dateOfTrip || b.timestamp || 0).getTime();
-              return timeB - timeA;
-            });
-          });
-          setSyncStatus('synced');
-        }
+        setTrips(activeTrips);
+        setSyncStatus('synced');
       },
       (err) => {
         console.warn('Cloud listener notice:', err);
@@ -308,15 +279,17 @@ export default function App() {
     const tripToArchive = trips.find(t => t.id === tripId);
     if (!tripToArchive) return;
 
+    markBillAsDeleted(tripToArchive.billNo, tripToArchive.id, tripId);
+
     const archivedRecord: TripRecord = {
       ...tripToArchive,
       archivedAt: new Date().toISOString(),
     };
 
-    setArchivedTrips(prev => [archivedRecord, ...prev]);
-    setTrips(prev => prev.filter(t => t.id !== tripId));
+    setArchivedTrips(prev => [archivedRecord, ...prev.filter(t => t.id !== tripId && t.billNo !== tripToArchive.billNo)]);
+    setTrips(prev => prev.filter(t => t.id !== tripId && t.billNo !== tripToArchive.billNo));
 
-    if (selectedTrip?.id === tripId) {
+    if (selectedTrip?.id === tripId || selectedTrip?.billNo === tripToArchive.billNo) {
       setSelectedTrip(null);
     }
 
@@ -331,7 +304,16 @@ export default function App() {
     const tripToRestore = archivedTrips.find(t => t.id === tripId);
     if (!tripToRestore) return;
 
-    setTrips(prev => [tripToRestore, ...prev]);
+    // Unmark as deleted
+    try {
+      const deletedBills = getDeletedBills();
+      if (tripToRestore.billNo) deletedBills.delete(tripToRestore.billNo.trim().toUpperCase());
+      if (tripToRestore.id) deletedBills.delete(tripToRestore.id.trim().toUpperCase());
+      deletedBills.delete(tripId.trim().toUpperCase());
+      localStorage.setItem('tc_deleted_bill_nos', JSON.stringify(Array.from(deletedBills)));
+    } catch {}
+
+    setTrips(prev => [tripToRestore, ...prev.filter(t => t.id !== tripId)]);
     setArchivedTrips(prev => prev.filter(t => t.id !== tripId));
     setSelectedTrip(tripToRestore);
     setCurrentView('invoice');
@@ -342,10 +324,21 @@ export default function App() {
     });
   };
 
-  // Handle Permanent Delete from Archive
+  // Handle Permanent Delete (Deletes from Archive or Active and Cloud)
   const handlePermanentDeleteTrip = (tripId: string) => {
-    setArchivedTrips(prev => prev.filter(t => t.id !== tripId));
-    if (selectedTrip?.id === tripId) {
+    const target = archivedTrips.find(t => t.id === tripId) || trips.find(t => t.id === tripId);
+    if (target) {
+      markBillAsDeleted(target.billNo, target.id, tripId);
+      deleteTripFromCloud(target.billNo || target.id).catch(() => {});
+    } else {
+      markBillAsDeleted(tripId);
+      deleteTripFromCloud(tripId).catch(() => {});
+    }
+
+    setArchivedTrips(prev => prev.filter(t => t.id !== tripId && (!target || t.billNo !== target.billNo)));
+    setTrips(prev => prev.filter(t => t.id !== tripId && (!target || t.billNo !== target.billNo)));
+    
+    if (selectedTrip?.id === tripId || (target && selectedTrip?.billNo === target.billNo)) {
       setSelectedTrip(null);
     }
   };
@@ -430,7 +423,7 @@ export default function App() {
       console.error('Storage error saving auth state', e);
     }
     setIsAuthenticated(true);
-    setActiveModule('invoice');
+    setActiveModule('hub');
   };
 
   // Handle Staff PIN Lock / Logout
