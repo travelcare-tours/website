@@ -14,10 +14,13 @@ import { StaffWorkspaceHub } from './components/StaffWorkspaceHub';
 import {
   saveTripToCloud,
   deleteTripFromCloud,
+  archiveTripInCloud,
+  restoreTripInCloud,
   syncLocalTripsToCloud,
   subscribeToCloudTrips,
   testFirestoreConnection,
   markBillAsDeleted,
+  unmarkBillAsDeleted,
   getDeletedBills
 } from './services/firebase';
 
@@ -55,7 +58,7 @@ export default function App() {
         const deletedBills = getDeletedBills();
         const active = parsed.filter(t => {
           const key = (t.billNo || t.id).trim().toUpperCase();
-          return !deletedBills.has(key) && !deletedBills.has((t.id || '').toUpperCase());
+          return !deletedBills.has(key) && !deletedBills.has((t.id || '').toUpperCase()) && !t.archivedAt;
         });
         return active;
       }
@@ -69,7 +72,12 @@ export default function App() {
     try {
       const saved = localStorage.getItem('tc_invoices_archived_trips');
       if (saved) {
-        return JSON.parse(saved);
+        const parsed: TripRecord[] = JSON.parse(saved);
+        const deletedBills = getDeletedBills();
+        return parsed.filter(t => {
+          const key = (t.billNo || t.id).trim().toUpperCase();
+          return !deletedBills.has(key) && !deletedBills.has((t.id || '').toUpperCase());
+        });
       }
     } catch (e) {
       console.error('Failed to load archived trips from local storage', e);
@@ -190,15 +198,10 @@ export default function App() {
 
     // Real-time listener for bills created or modified on any device
     const unsubscribe = subscribeToCloudTrips(
-      (cloudTrips) => {
+      (activeTrips, cloudArchivedTrips) => {
         if (!isMounted) return;
-        const deletedBills = getDeletedBills();
-        const activeTrips = (cloudTrips || []).filter((ct) => {
-          const key = (ct.billNo || ct.id).trim().toUpperCase();
-          return !deletedBills.has(key) && !deletedBills.has((ct.id || '').toUpperCase());
-        });
-
         setTrips(activeTrips);
+        setArchivedTrips(cloudArchivedTrips);
         setSyncStatus('synced');
       },
       (err) => {
@@ -224,7 +227,7 @@ export default function App() {
   };
 
   // Next bill number calculation
-  const nextBillNo = generateNextBillNo(trips, companySettings.invoicePrefix || 'TC-');
+  const nextBillNo = generateNextBillNo(trips, companySettings.invoicePrefix || 'TC-', companySettings.nextInvoiceNumber || 6);
 
   // Handle Save Trip
   const handleSaveTrip = (savedTrip: TripRecord, navigateToInvoice: boolean = true) => {
@@ -279,8 +282,6 @@ export default function App() {
     const tripToArchive = trips.find(t => t.id === tripId);
     if (!tripToArchive) return;
 
-    markBillAsDeleted(tripToArchive.billNo, tripToArchive.id, tripId);
-
     const archivedRecord: TripRecord = {
       ...tripToArchive,
       archivedAt: new Date().toISOString(),
@@ -293,9 +294,9 @@ export default function App() {
       setSelectedTrip(null);
     }
 
-    // Delete from active trips collection in Cloud Firestore
-    deleteTripFromCloud(tripToArchive.billNo || tripToArchive.id).catch((err) => {
-      console.warn('Cloud delete notice:', err);
+    // Persist archive state to Cloud Firestore (so all devices see it in Archive)
+    archiveTripInCloud(archivedRecord).catch((err) => {
+      console.warn('Cloud archive notice:', err);
     });
   };
 
@@ -304,22 +305,21 @@ export default function App() {
     const tripToRestore = archivedTrips.find(t => t.id === tripId);
     if (!tripToRestore) return;
 
-    // Unmark as deleted
-    try {
-      const deletedBills = getDeletedBills();
-      if (tripToRestore.billNo) deletedBills.delete(tripToRestore.billNo.trim().toUpperCase());
-      if (tripToRestore.id) deletedBills.delete(tripToRestore.id.trim().toUpperCase());
-      deletedBills.delete(tripId.trim().toUpperCase());
-      localStorage.setItem('tc_deleted_bill_nos', JSON.stringify(Array.from(deletedBills)));
-    } catch {}
+    // Clean archivedAt fields
+    const restoredTrip: TripRecord = { ...tripToRestore };
+    delete restoredTrip.archivedAt;
+    delete restoredTrip.archivedReason;
 
-    setTrips(prev => [tripToRestore, ...prev.filter(t => t.id !== tripId)]);
+    // Unmark as deleted in local storage and cloud tombstones
+    unmarkBillAsDeleted(tripToRestore.billNo, tripToRestore.id, tripId).catch(() => {});
+
+    setTrips(prev => [restoredTrip, ...prev.filter(t => t.id !== tripId && t.billNo !== tripToRestore.billNo)]);
     setArchivedTrips(prev => prev.filter(t => t.id !== tripId));
-    setSelectedTrip(tripToRestore);
+    setSelectedTrip(restoredTrip);
     setCurrentView('invoice');
 
     // Restore to Cloud Firestore
-    saveTripToCloud(tripToRestore).catch((err) => {
+    restoreTripInCloud(restoredTrip).catch((err) => {
       console.warn('Cloud restore notice:', err);
     });
   };
@@ -327,13 +327,10 @@ export default function App() {
   // Handle Permanent Delete (Deletes from Archive or Active and Cloud)
   const handlePermanentDeleteTrip = (tripId: string) => {
     const target = archivedTrips.find(t => t.id === tripId) || trips.find(t => t.id === tripId);
-    if (target) {
-      markBillAsDeleted(target.billNo, target.id, tripId);
-      deleteTripFromCloud(target.billNo || target.id).catch(() => {});
-    } else {
-      markBillAsDeleted(tripId);
-      deleteTripFromCloud(tripId).catch(() => {});
-    }
+    const billNo = target?.billNo;
+    const id = target?.id || tripId;
+
+    markBillAsDeleted(billNo || '', id, tripId).catch(() => {});
 
     setArchivedTrips(prev => prev.filter(t => t.id !== tripId && (!target || t.billNo !== target.billNo)));
     setTrips(prev => prev.filter(t => t.id !== tripId && (!target || t.billNo !== target.billNo)));
@@ -341,6 +338,11 @@ export default function App() {
     if (selectedTrip?.id === tripId || (target && selectedTrip?.billNo === target.billNo)) {
       setSelectedTrip(null);
     }
+
+    // Permanently purge from Cloud Firestore with multi-key resolution
+    deleteTripFromCloud({ id, billNo }).catch((err) => {
+      console.warn('Cloud permanent delete notice:', err);
+    });
   };
 
   // Handle Payment Settlement / Ledger Balancing

@@ -149,18 +149,23 @@ export function formatNumber(num: number): string {
   return Number(num || 0).toLocaleString('en-IN');
 }
 
-export function generateNextBillNo(records: TripRecord[], prefix: string = 'TC-'): string {
-  let highestNum = 0;
+export function generateNextBillNo(records: TripRecord[], prefix: string = 'TC-', minNumber: number = 6): string {
+  let highestNum = Math.max(0, minNumber - 1);
   records.forEach((r) => {
     if (r.billNo && r.billNo.startsWith(prefix)) {
-      const numPart = parseInt(r.billNo.replace(prefix, ''), 10);
-      if (!isNaN(numPart) && numPart > highestNum) {
-        highestNum = numPart;
+      const rawPart = r.billNo.slice(prefix.length).trim();
+      // Match pure digits to prevent test IDs like E2E-777 from skewing bill sequence
+      const match = rawPart.match(/^(\d+)$/);
+      if (match) {
+        const numPart = parseInt(match[1], 10);
+        if (!isNaN(numPart) && numPart > highestNum) {
+          highestNum = numPart;
+        }
       }
     }
   });
   const next = highestNum + 1;
-  return `${prefix}${String(next).padStart(4, '0')}`;
+  return `${prefix}${String(next).padStart(3, '0')}`;
 }
 
 export function encodeTripToUrl(trip: TripRecord): string {

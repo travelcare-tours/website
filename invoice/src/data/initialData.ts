@@ -12,7 +12,7 @@ export const defaultCompanySettings: CompanySettings = {
   upiName: 'Travel Care Tours Pvt Ltd',
   currencySymbol: '₹',
   invoicePrefix: 'TC-',
-  nextInvoiceNumber: 5,
+  nextInvoiceNumber: 6,
   termsAndConditions: [
     'Toll, Parking, Interstate Permits & Entry tickets are as per actual receipts.',
     'Driver Bata is applicable for outstation duty & overnight halt.',

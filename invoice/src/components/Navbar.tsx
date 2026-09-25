@@ -55,20 +55,8 @@ export const Navbar = ({
         {/* Responsive Header Height */}
         <div className="flex items-center justify-between h-16 sm:h-18 lg:h-20">
           
-          {/* Left Brand Area & Workspace Hub Quick Access Button (Logo only, without text) */}
+          {/* Left Brand Area */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {onReturnToHub && (
-              <button
-                id="nav-btn-hub-quick"
-                onClick={onReturnToHub}
-                title="Return to Workspace Hub (Operations & Planner)"
-                aria-label="Workspace Hub"
-                className="p-2 sm:p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/90 hover:border-blue-500/50 transition-all cursor-pointer flex items-center justify-center group shadow-xs active:scale-95 shrink-0"
-              >
-                <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 group-hover:scale-110 transition-transform" />
-              </button>
-            )}
-
             {/* Plain White Logo as given in the footer of the main webpage */}
             <div 
               className="flex items-center gap-2.5 sm:gap-3.5 cursor-pointer select-none group py-1" 

@@ -3,6 +3,7 @@ import {
   getFirestore,
   collection,
   doc,
+  getDoc,
   setDoc,
   deleteDoc,
   onSnapshot,
@@ -10,7 +11,10 @@ import {
   getDocFromServer,
   writeBatch,
   query,
-  where
+  where,
+  arrayUnion,
+  arrayRemove,
+  deleteField
 } from 'firebase/firestore';
 import type { TripRecord } from '../types';
 
@@ -32,41 +36,145 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 export const TRIPS_COLLECTION = 'trips';
 const tripsColRef = collection(db, TRIPS_COLLECTION);
+const settingsDeletedDocRef = doc(db, 'settings', 'deleted_records');
 
 const DELETED_BILLS_STORAGE_KEY = 'tc_deleted_bill_nos';
 const DEFAULT_DELETED = ['TC-0001', 'TC-0002', 'TC-0003', 'TC-0004', 'TC_0001', 'TC_0002', 'TC_0003', 'TC_0004'];
+
+let inMemoryDeletedCache: Set<string> | null = null;
 
 /**
  * Get locally recorded deleted bills to prevent ghost resurrection
  */
 export function getDeletedBills(): Set<string> {
-  const set = new Set<string>(DEFAULT_DELETED);
+  if (inMemoryDeletedCache) {
+    return new Set<string>(inMemoryDeletedCache);
+  }
+  const set = new Set<string>();
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       const raw = localStorage.getItem(DELETED_BILLS_STORAGE_KEY);
-      if (raw) {
+      if (raw !== null) {
         const arr: string[] = JSON.parse(raw);
         arr.forEach(s => set.add(s.trim().toUpperCase()));
+      } else {
+        DEFAULT_DELETED.forEach(s => set.add(s.trim().toUpperCase()));
+        localStorage.setItem(DELETED_BILLS_STORAGE_KEY, JSON.stringify(Array.from(set)));
       }
+    } else {
+      DEFAULT_DELETED.forEach(s => set.add(s.trim().toUpperCase()));
     }
-  } catch {}
-  return set;
+  } catch {
+    DEFAULT_DELETED.forEach(s => set.add(s.trim().toUpperCase()));
+  }
+  inMemoryDeletedCache = set;
+  return new Set<string>(set);
 }
 
 /**
- * Record a bill number / trip ID as deleted
+ * Fetch deleted bills from Cloud Firestore tombstone ledger merged with local storage
  */
-export function markBillAsDeleted(...billNosOrIds: string[]): void {
+export async function fetchCloudAndLocalDeletedBills(): Promise<Set<string>> {
+  const merged = getDeletedBills();
   try {
-    const current = getDeletedBills();
-    billNosOrIds.forEach(id => {
-      if (id && id.trim()) {
-        current.add(id.trim().toUpperCase());
+    const docSnap = await getDoc(settingsDeletedDocRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      if (Array.isArray(data?.deleted)) {
+        data.deleted.forEach((s: string) => {
+          if (s && typeof s === 'string') {
+            merged.add(s.trim().toUpperCase());
+          }
+        });
+        if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.setItem(DELETED_BILLS_STORAGE_KEY, JSON.stringify(Array.from(merged)));
+        }
+        inMemoryDeletedCache = merged;
       }
-    });
-    localStorage.setItem(DELETED_BILLS_STORAGE_KEY, JSON.stringify(Array.from(current)));
+    }
+  } catch (err) {
+    console.warn('Could not fetch cloud deleted bills:', err);
+  }
+  return merged;
+}
+
+/**
+ * Record a bill number / trip ID as deleted in both local storage and Cloud Firestore tombstones
+ */
+export async function markBillAsDeleted(...billNosOrIds: string[]): Promise<void> {
+  const validKeys: string[] = [];
+  const current = getDeletedBills();
+
+  billNosOrIds.forEach(id => {
+    if (id && id.trim()) {
+      const upper = id.trim().toUpperCase();
+      current.add(upper);
+      validKeys.push(upper);
+      const clean = upper.replace(/[^A-Za-z0-9_-]/g, '_');
+      if (clean !== upper) {
+        current.add(clean);
+        validKeys.push(clean);
+      }
+    }
+  });
+
+  inMemoryDeletedCache = current;
+
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(DELETED_BILLS_STORAGE_KEY, JSON.stringify(Array.from(current)));
+    }
   } catch (err) {
     console.warn('Could not persist deleted bills record:', err);
+  }
+
+  // Persist to Cloud Firestore global tombstone registry
+  if (validKeys.length > 0) {
+    try {
+      await setDoc(settingsDeletedDocRef, {
+        deleted: arrayUnion(...validKeys),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (err) {
+      console.warn('Could not update cloud tombstone registry:', err);
+    }
+  }
+}
+
+/**
+ * Remove a bill number / trip ID from deletion records (used on Restore)
+ */
+export async function unmarkBillAsDeleted(...billNosOrIds: string[]): Promise<void> {
+  const current = getDeletedBills();
+  const keysToRemove: string[] = [];
+
+  billNosOrIds.forEach(id => {
+    if (id && id.trim()) {
+      const upper = id.trim().toUpperCase();
+      const clean = upper.replace(/[^A-Za-z0-9_-]/g, '_');
+      current.delete(upper);
+      current.delete(clean);
+      keysToRemove.push(upper, clean);
+    }
+  });
+
+  inMemoryDeletedCache = current;
+
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(DELETED_BILLS_STORAGE_KEY, JSON.stringify(Array.from(current)));
+    }
+  } catch {}
+
+  if (keysToRemove.length > 0) {
+    try {
+      await setDoc(settingsDeletedDocRef, {
+        deleted: arrayRemove(...keysToRemove),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (err) {
+      console.warn('Could not remove key from cloud tombstone registry:', err);
+    }
   }
 }
 
@@ -112,7 +220,7 @@ export async function testFirestoreConnection(): Promise<boolean> {
 }
 
 /**
- * Save or update a trip in Cloud Firestore
+ * Save or update an active trip in Cloud Firestore
  */
 export async function saveTripToCloud(trip: TripRecord): Promise<void> {
   try {
@@ -126,65 +234,154 @@ export async function saveTripToCloud(trip: TripRecord): Promise<void> {
 }
 
 /**
- * Robustly delete a trip from Cloud Firestore
- * Handles multiple ID representations and cleans up any matching documents
+ * Move a trip to Cloud Archive (soft delete - preserves history across all devices)
  */
-export async function deleteTripFromCloud(tripIdOrBillNo: string): Promise<void> {
-  if (!tripIdOrBillNo || !tripIdOrBillNo.trim()) return;
-
-  const raw = tripIdOrBillNo.trim();
-  markBillAsDeleted(raw);
-
-  const cleanId = raw.replace(/[^A-Za-z0-9_-]/g, '_');
-  const upperId = raw.toUpperCase().replace(/[^A-Za-z0-9_-]/g, '_');
-  const lowerId = raw.toLowerCase().replace(/[^A-Za-z0-9_-]/g, '_');
-
-  const possibleDocIds = Array.from(new Set([raw, cleanId, upperId, lowerId]));
-
+export async function archiveTripInCloud(trip: TripRecord | { id: string; billNo?: string }): Promise<void> {
   try {
-    // 1. Delete direct document references
-    for (const docId of possibleDocIds) {
-      try {
-        await deleteDoc(doc(tripsColRef, docId));
-      } catch (err) {
-        console.warn(`Doc delete attempt for ${docId}:`, err);
+    const archivedAt = (trip as TripRecord).archivedAt || new Date().toISOString();
+    const docId = getTripDocId(trip);
+    const docRef = doc(tripsColRef, docId);
+    await setDoc(docRef, { archivedAt, updatedAt: new Date().toISOString() }, { merge: true });
+
+    // Ensure any matching documents by billNo are also marked archived
+    if (trip.billNo) {
+      const rawBill = trip.billNo.trim();
+      const qBill = query(tripsColRef, where('billNo', 'in', [rawBill, rawBill.toUpperCase(), rawBill.toLowerCase()]));
+      const snap = await getDocs(qBill);
+      if (!snap.empty) {
+        const batch = writeBatch(db);
+        snap.forEach(d => batch.update(d.ref, { archivedAt, updatedAt: new Date().toISOString() }));
+        await batch.commit();
       }
     }
-
-    // 2. Query collection for any docs with matching billNo or id
-    try {
-      const qBill = query(tripsColRef, where('billNo', 'in', [raw, raw.toUpperCase(), raw.toLowerCase()]));
-      const snapBill = await getDocs(qBill);
-      if (!snapBill.empty) {
-        const batch = writeBatch(db);
-        snapBill.forEach(d => batch.delete(d.ref));
-        await batch.commit();
-      }
-    } catch {}
-
-    try {
-      const qId = query(tripsColRef, where('id', 'in', [raw, raw.toUpperCase(), raw.toLowerCase()]));
-      const snapId = await getDocs(qId);
-      if (!snapId.empty) {
-        const batch = writeBatch(db);
-        snapId.forEach(d => batch.delete(d.ref));
-        await batch.commit();
-      }
-    } catch {}
   } catch (error) {
-    console.error('Failed to delete trip from Cloud Firestore:', error);
+    console.error('Failed to archive trip in Cloud Firestore:', error);
+    throw error;
+  }
+}
+
+/**
+ * Restore an archived trip back to Active status in Cloud Firestore
+ */
+export async function restoreTripInCloud(trip: TripRecord): Promise<void> {
+  try {
+    const sanitized = sanitizeTripData(trip);
+    delete sanitized.archivedAt;
+    delete sanitized.archivedReason;
+
+    const docId = getTripDocId(trip);
+    const docRef = doc(tripsColRef, docId);
+    await setDoc(docRef, {
+      ...sanitized,
+      archivedAt: deleteField(),
+      archivedReason: deleteField(),
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+
+    if (trip.billNo || trip.id) {
+      await unmarkBillAsDeleted(trip.billNo, trip.id);
+    }
+  } catch (error) {
+    console.error('Failed to restore trip in Cloud Firestore:', error);
+    throw error;
+  }
+}
+
+/**
+ * Robustly and permanently delete a trip from Cloud Firestore
+ * Handles multiple ID representations, cleans up matching docs, and writes global tombstones
+ */
+export async function deleteTripFromCloud(target: { id?: string; billNo?: string } | string): Promise<void> {
+  const rawId = typeof target === 'string' ? target.trim() : (target?.id || '').trim();
+  const rawBill = typeof target === 'string' ? target.trim() : (target?.billNo || '').trim();
+
+  if (!rawId && !rawBill) return;
+
+  // 1. Record tombstone in both local storage and Cloud Firestore
+  await markBillAsDeleted(rawBill, rawId);
+
+  // 2. Compute candidate document IDs
+  const candidateDocIds = new Set<string>();
+  [rawId, rawBill].forEach(val => {
+    if (!val) return;
+    candidateDocIds.add(val);
+    candidateDocIds.add(val.toUpperCase());
+    candidateDocIds.add(val.toLowerCase());
+    candidateDocIds.add(val.replace(/[^A-Za-z0-9_-]/g, '_'));
+    candidateDocIds.add(val.toUpperCase().replace(/[^A-Za-z0-9_-]/g, '_'));
+    candidateDocIds.add(val.toLowerCase().replace(/[^A-Za-z0-9_-]/g, '_'));
+  });
+
+  if (rawBill) {
+    candidateDocIds.add(getTripDocId({ billNo: rawBill }));
+  }
+  if (rawId) {
+    candidateDocIds.add(getTripDocId({ id: rawId }));
+  }
+
+  try {
+    // 3. Collect unique document references across candidate IDs and field queries
+    const docRefsToDelete = new Map<string, any>();
+    for (const docId of candidateDocIds) {
+      const docRef = doc(tripsColRef, docId);
+      docRefsToDelete.set(docRef.path, docRef);
+    }
+
+    if (rawBill) {
+      try {
+        const qBill = query(tripsColRef, where('billNo', 'in', [rawBill, rawBill.toUpperCase(), rawBill.toLowerCase()]));
+        const snapBill = await getDocs(qBill);
+        snapBill.forEach(d => {
+          docRefsToDelete.set(d.ref.path, d.ref);
+        });
+      } catch {}
+    }
+
+    if (rawId) {
+      try {
+        const qId = query(tripsColRef, where('id', 'in', [rawId, rawId.toUpperCase(), rawId.toLowerCase()]));
+        const snapId = await getDocs(qId);
+        snapId.forEach(d => {
+          docRefsToDelete.set(d.ref.path, d.ref);
+        });
+      } catch {}
+    }
+
+    // 4. Delete each unique document reference cleanly
+    for (const docRef of docRefsToDelete.values()) {
+      try {
+        await deleteDoc(docRef);
+      } catch (err) {
+        console.warn(`Doc delete attempt for ${docRef.id}:`, err);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to permanently delete trip from Cloud Firestore:', error);
     throw error;
   }
 }
 
 /**
  * Sync local trips to Cloud Firestore (ensures offline or locally created bills like TC-0005 are uploaded)
- * Never re-uploads deleted bills or default test templates
+ * Never re-uploads deleted bills or tombstoned trips
  */
 export async function syncLocalTripsToCloud(localTrips: TripRecord[]): Promise<void> {
   if (!localTrips || localTrips.length === 0) return;
 
-  const deletedBills = getDeletedBills();
+  const deletedBills = await fetchCloudAndLocalDeletedBills();
+
+  // Actively prune deleted/tombstoned bills from local storage so clients don't retain ghosts
+  const nonDeletedLocal = localTrips.filter(trip => {
+    const billKey = (trip.billNo || '').trim().toUpperCase();
+    const idKey = (trip.id || '').trim().toUpperCase();
+    return !(billKey && deletedBills.has(billKey)) && !(idKey && deletedBills.has(idKey));
+  });
+
+  if (typeof window !== 'undefined' && window.localStorage && nonDeletedLocal.length !== localTrips.length) {
+    try {
+      localStorage.setItem('tc_invoices_trips', JSON.stringify(nonDeletedLocal));
+    } catch {}
+  }
 
   try {
     const snapshot = await getDocs(tripsColRef);
@@ -196,20 +393,18 @@ export async function syncLocalTripsToCloud(localTrips: TripRecord[]): Promise<v
         existingCloudIds.add(data.billNo.trim().toUpperCase());
         existingCloudIds.add(data.billNo.trim().toUpperCase().replace(/[^A-Za-z0-9_-]/g, '_'));
       }
+      if (data.id) {
+        existingCloudIds.add(String(data.id).trim().toUpperCase());
+      }
     });
 
     const batch = writeBatch(db);
     let countToUpload = 0;
 
-    for (const trip of localTrips) {
-      const billKey = (trip.billNo || trip.id).trim().toUpperCase();
-      // Skip if explicitly marked deleted or in deleted list
-      if (deletedBills.has(billKey) || deletedBills.has(trip.id?.toUpperCase() || '')) {
-        continue;
-      }
-
+    for (const trip of nonDeletedLocal) {
+      const billKey = (trip.billNo || '').trim().toUpperCase();
       const docId = getTripDocId(trip);
-      if (!existingCloudIds.has(docId.toUpperCase()) && !existingCloudIds.has(billKey)) {
+      if (!existingCloudIds.has(docId.toUpperCase()) && (!billKey || !existingCloudIds.has(billKey))) {
         const docRef = doc(tripsColRef, docId);
         batch.set(docRef, sanitizeTripData(trip), { merge: true });
         countToUpload++;
@@ -226,27 +421,50 @@ export async function syncLocalTripsToCloud(localTrips: TripRecord[]): Promise<v
 }
 
 /**
- * Subscribe to real-time changes across all devices
+ * Subscribe to real-time changes across all devices, segregating Active vs Archived trips
  */
 export function subscribeToCloudTrips(
-  onUpdate: (trips: TripRecord[]) => void,
+  onUpdate: (activeTrips: TripRecord[], archivedTrips: TripRecord[]) => void,
   onError?: (error: Error) => void
 ): () => void {
   return onSnapshot(
     tripsColRef,
-    (snapshot) => {
-      const cloudTrips: TripRecord[] = [];
+    async (snapshot) => {
+      const deletedBills = await fetchCloudAndLocalDeletedBills();
+      const activeTrips: TripRecord[] = [];
+      const archivedTrips: TripRecord[] = [];
+
       snapshot.forEach((docSnap) => {
         const data = docSnap.data() as TripRecord;
-        cloudTrips.push(data);
+        const billKey = (data.billNo || '').trim().toUpperCase();
+        const idKey = (data.id || '').trim().toUpperCase();
+        const docIdKey = docSnap.id.trim().toUpperCase();
+
+        if (
+          (billKey && deletedBills.has(billKey)) ||
+          (idKey && deletedBills.has(idKey)) ||
+          deletedBills.has(docIdKey)
+        ) {
+          return;
+        }
+
+        if (data.archivedAt) {
+          archivedTrips.push(data);
+        } else {
+          activeTrips.push(data);
+        }
       });
-      // Sort newest first by billNo or timestamp
-      cloudTrips.sort((a, b) => {
+
+      const sortByDate = (a: TripRecord, b: TripRecord) => {
         const timeA = new Date(a.dateOfTrip || a.timestamp || 0).getTime();
         const timeB = new Date(b.dateOfTrip || b.timestamp || 0).getTime();
         return timeB - timeA;
-      });
-      onUpdate(cloudTrips);
+      };
+
+      activeTrips.sort(sortByDate);
+      archivedTrips.sort(sortByDate);
+
+      onUpdate(activeTrips, archivedTrips);
     },
     (err) => {
       console.error('Cloud Firestore subscription error:', err);
