@@ -27,7 +27,7 @@ export const StaffWorkspaceHub: React.FC<StaffWorkspaceHubProps> = ({
   companyName = 'Travel Care Tours Pvt Ltd',
   totalTripsCount = 0,
 }) => {
-  const ITINERARY_PLANNER_URL = 'https://travelcare-tours.github.io/planner_antigravity/';
+  const ITINERARY_PLANNER_URL = 'https://travelcare-tours.github.io/planner/';
 
   const handleLaunchPlanner = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
